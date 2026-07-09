@@ -16,7 +16,7 @@ A TV/movie tracking app with a community brain. Track what you watch, connect wi
 - [x] **Supabase project setup** — Create Supabase project, enable Google Auth, design database schema (users, media, watchlist, watch history). **Note:** A separate OAuth client ID must be generated for the release (production) variant and added to the comma-separated list in the Google provider config on Supabase.
 - [x] **Google Sign-In** — Authenticate via Supabase Auth via Credential Manager, create user profile row on first login
 - [x] **Room local database setup** — Define local tables mirroring the key user data (watchlist, watch history) with sync status columns
-- [ ] **Simkl API integration** — Retrofit client setup, API key management, data models for shows/movies/episodes
+- [x] **Simkl API integration** — Retrofit client setup, API key management, data models for shows/movies/episodes
 - [ ] **Search screen** — Search for movies and TV shows via Simkl API, display results in a list with posters
 - [ ] **Detail screen** — Show/movie detail page with synopsis, poster, rating, episode list (for TV shows), metadata
 - [ ] **Add to watchlist** — Button to add show/movie to user's list with status: Watching, Plan to Watch, Watched
@@ -24,8 +24,23 @@ A TV/movie tracking app with a community brain. Track what you watch, connect wi
 - [ ] **Library screens** — Separate tabs for Watching, Plan to Watch, Watched, pulling from local DB with sync status indicator
 - [ ] **Background sync** — Sync pending local changes to Supabase when online; handle conflicts (latest wins)
 - [ ] **Runtime tracking** — Compute total watch time from watched episodes/movies and display on profile
+- [ ] **Simkl Sync (OAuth compliance)** — PKCE OAuth flow, one-way import, two-way delta sync with Simkl. Required by Simkl API terms (competing tracker apps must offer Simkl login + sync).
 
-**Delivery:** A functional tracker that works offline-first. User can sign in, search, add, watch, and see their stats.
+  **Phase A — PKCE OAuth:**
+    - Register `tally://oauth/simkl` redirect URI in Simkl dev settings + Android intent filter
+    - Generate code_verifier + code_challenge (S256), open Simkl authorization page
+    - Exchange auth_code for access_token + refresh_token; store in EncryptedSharedPreferences
+    - "Link Simkl Account" / "Unlink" UI on Profile screen
+
+  **Phase B — One-way import (first-time sync):**
+    - `GET /sync/all-items/movies/{status}` and `shows/{status}` for each watchlist status
+    - Merge into Room WatchlistEntity with syncStatus = SYNCED
+
+  **Phase C — Two-way delta sync (periodic + pull-to-refresh):**
+    - `GET /sync/activities` → check last-modified timestamps per category
+    - Pull changed items from Simkl since `last_sync_at` → merge into Room (latest-wins)
+    - Push Room items with syncStatus = PENDING_ADD / PENDING_DELETE via `POST /sync/history` and `POST /sync/add-to-list`
+    - Store `simkl_last_sync_at` per category for efficient delta polling
 
 ---
 
@@ -113,6 +128,6 @@ A TV/movie tracking app with a community brain. Track what you watch, connect wi
 
 | API | Purpose |
 |---|---|
-| Simkl | Movie/TV metadata, search, episodes, trending |
+| Simkl | Movie/TV metadata, search, episodes, trending + optional user sync (OAuth) |
 | fanart.tv | Alternative poster artwork |
 | Google Sign-In | Authentication (via Supabase) |
