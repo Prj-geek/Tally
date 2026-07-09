@@ -1,14 +1,20 @@
 package com.tally.app.data.di
 
+import android.content.Context
 import com.tally.app.BuildConfig
+import com.tally.app.data.local.TallyDatabase
+import com.tally.app.data.local.dao.MediaDao
+import com.tally.app.data.local.dao.WatchHistoryDao
+import com.tally.app.data.local.dao.WatchlistDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.postgrest.Postgrest
 import javax.inject.Singleton
 
 @Module
@@ -26,4 +32,18 @@ object AppModule {
             install(Postgrest)
         }
     }
+
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): TallyDatabase =
+        TallyDatabase.create(context)
+
+    @Provides
+    fun provideMediaDao(db: TallyDatabase): MediaDao = db.mediaDao()
+
+    @Provides
+    fun provideWatchlistDao(db: TallyDatabase): WatchlistDao = db.watchlistDao()
+
+    @Provides
+    fun provideWatchHistoryDao(db: TallyDatabase): WatchHistoryDao = db.watchHistoryDao()
 }

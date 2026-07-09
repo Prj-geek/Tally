@@ -15,7 +15,7 @@ A TV/movie tracking app with a community brain. Track what you watch, connect wi
 - [x] **Project scaffold** — Kotlin + Jetpack Compose project, Hilt setup, Navigation Compose skeleton (main screens, bottom nav)
 - [x] **Supabase project setup** — Create Supabase project, enable Google Auth, design database schema (users, media, watchlist, watch history). **Note:** A separate OAuth client ID must be generated for the release (production) variant and added to the comma-separated list in the Google provider config on Supabase.
 - [x] **Google Sign-In** — Authenticate via Supabase Auth via Credential Manager, create user profile row on first login
-- [ ] **Room local database setup** — Define local tables mirroring the key user data (watchlist, watch history) with sync status columns
+- [x] **Room local database setup** — Define local tables mirroring the key user data (watchlist, watch history) with sync status columns
 - [ ] **Simkl API integration** — Retrofit client setup, API key management, data models for shows/movies/episodes
 - [ ] **Search screen** — Search for movies and TV shows via Simkl API, display results in a list with posters
 - [ ] **Detail screen** — Show/movie detail page with synopsis, poster, rating, episode list (for TV shows), metadata
