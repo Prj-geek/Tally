@@ -30,7 +30,7 @@ android {
         buildConfigField("String", "SUPABASE_URL", "\"${localProperties["SUPABASE_URL"]}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties["SUPABASE_ANON_KEY"]}\"")
         // Simkl API key — set this in local.properties or build config
-        buildConfigField("String", "SIMKL_CLIENT_ID", "\"${project.findProperty("SIMKL_CLIENT_ID") ?: ""}\"")
+        buildConfigField("String", "SIMKL_CLIENT_ID", "\"${localProperties.getProperty("SIMKL_CLIENT_ID", "")}\"")
         // Google OAuth web client ID — from Google Cloud Console (used for Google Sign-In)
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\"")
     }

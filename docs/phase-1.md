@@ -25,7 +25,7 @@
 ### Task 5: Simkl API integration
 - [ ] pending
 - [ ] in progress
-- [ ] completed
+- [x] completed
 
 ### Task 6: Search screen
 - [ ] pending
@@ -73,3 +73,4 @@
 | 2026-07-10 | `app/build.gradle.kts`, `local.properties` | Supabase project setup: enabled Google Auth, created SQL schema (profiles, media, watchlist, watch_history) with RLS policies, added SUPABASE_URL and SUPABASE_ANON_KEY to local.properties and buildConfig. |
 | 2026-07-10 | `data/di/AppModule.kt`, `data/auth/AuthRepository.kt`, `ui/profile/ProfileViewModel.kt`, `ui/screens/ProfileScreen.kt` | Google Sign-In via Credential Manager. Profile screen shows "Sign in with Google" button → account picker → Supabase ID token exchange → auto-creates profile row on first login. Session persists via Supabase auto-refresh. GOOGLE_WEB_CLIENT_ID in local.properties. Dependencies: credentials:1.6.0, credentials-play-services-auth:1.6.0, googleid:1.2.0. Removed deprecated play-services-auth. |
 | 2026-07-10 | `data/local/entity/*.kt`, `data/local/dao/*.kt`, `data/local/SyncStatus.kt`, `data/local/TallyDatabase.kt`, `data/di/AppModule.kt` | Room local database setup. Three entities: MediaEntity (cache, keyed by simklId), WatchlistEntity (with SyncStatus PENDING_ADD/UPDATE/DELETE/SYNCED, unique per userId+simklId), WatchHistoryEntity (with SyncStatus, unique per userId+simklId+season+episode). DAOs for search, filter by status, and sync query. Hilt-wired via AppModule. |
+| 2026-07-10 | `data/di/NetworkModule.kt`, `data/remote/api/SimklApiService.kt`, `data/remote/model/*.kt`, `data/remote/SimklRepository.kt`, `data/remote/SimklImageUrl.kt` | Simkl API integration. Retrofit client with Hilt DI, OkHttp interceptor adding client_id/app-name/app-version/User-Agent to every request. Data models: SearchResult, MovieDetail, TvShowDetail, TvEpisode. SimklRepository wrapping API with automatic empty-array-to-null conversion for detail endpoints. Image URL helper for posters/fanart via wsrv.nl. SIMKL_CLIENT_ID in local.properties. |
