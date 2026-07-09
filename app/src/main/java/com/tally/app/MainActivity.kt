@@ -35,7 +35,7 @@ data class BottomNavItem(
 )
 
 private val bottomNavItems = listOf(
-    BottomNavItem("Library", AutoMirrored.Filled.LibraryBooks, Routes.LIBRARY),
+    BottomNavItem("Library", Icons.AutoMirrored.Filled.LibraryBooks, Routes.LIBRARY),
     BottomNavItem("Search", Icons.Default.Search, Routes.SEARCH),
     BottomNavItem("Profile", Icons.Default.Person, Routes.PROFILE)
 )
