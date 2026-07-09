@@ -31,6 +31,8 @@ android {
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties["SUPABASE_ANON_KEY"]}\"")
         // Simkl API key — set this in local.properties or build config
         buildConfigField("String", "SIMKL_CLIENT_ID", "\"${project.findProperty("SIMKL_CLIENT_ID") ?: ""}\"")
+        // Google OAuth web client ID — from Google Cloud Console (used for Google Sign-In)
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\"")
     }
 
     buildTypes {
@@ -115,8 +117,10 @@ dependencies {
     implementation("io.ktor:ktor-client-android:3.0.2")
 
 
-    // ── Google Play Services (for Google Sign-In) ───────────────
-    implementation("com.google.android.gms:play-services-auth:21.6.0")
+    // ── Credential Manager (Google Sign-In) ─────────────────────
+    implementation("androidx.credentials:credentials:1.6.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.2.0")
 
     // ── Coroutines ───────────────────────────────────────────────
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
