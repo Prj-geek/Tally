@@ -1,6 +1,9 @@
 gdpr-data/
 docs/
 
+# Secrets
+*client_secret*.json
+
 # Gradle
 .gradle/
 build/
