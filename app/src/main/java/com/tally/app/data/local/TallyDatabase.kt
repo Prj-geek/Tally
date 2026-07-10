@@ -13,7 +13,7 @@ import com.tally.app.data.local.entity.WatchlistEntity
 
 @Database(
     entities = [MediaEntity::class, WatchlistEntity::class, WatchHistoryEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class TallyDatabase : RoomDatabase() {

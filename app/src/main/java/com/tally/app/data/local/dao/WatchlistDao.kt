@@ -18,8 +18,8 @@ interface WatchlistDao {
     @Query("SELECT * FROM watchlist WHERE userId = :userId AND status = :status ORDER BY updatedAt DESC")
     fun getByStatus(userId: String, status: String): Flow<List<WatchlistEntity>>
 
-    @Query("SELECT * FROM watchlist WHERE userId = :userId AND simklId = :simklId")
-    suspend fun get(userId: String, simklId: Long): WatchlistEntity?
+    @Query("SELECT * FROM watchlist WHERE userId = :userId AND tmdbId = :tmdbId")
+    suspend fun get(userId: String, tmdbId: Long): WatchlistEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entry: WatchlistEntity)

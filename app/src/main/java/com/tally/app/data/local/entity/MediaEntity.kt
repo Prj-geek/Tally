@@ -5,10 +5,11 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "media")
 data class MediaEntity(
-    @PrimaryKey val simklId: Long,
+    @PrimaryKey val tmdbId: Long,
     val title: String,
-    val type: String,
+    val mediaType: String,
     val posterUrl: String? = null,
+    val backdropUrl: String? = null,
     val year: Int? = null,
     val synopsis: String? = null,
     val totalEpisodes: Int? = null,

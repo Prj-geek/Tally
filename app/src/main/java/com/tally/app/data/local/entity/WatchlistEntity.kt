@@ -7,12 +7,12 @@ import com.tally.app.data.local.SyncStatus
 
 @Entity(
     tableName = "watchlist",
-    indices = [Index(value = ["userId", "simklId"], unique = true)],
+    indices = [Index(value = ["userId", "tmdbId"], unique = true)],
 )
 data class WatchlistEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val userId: String,
-    val simklId: Long,
+    val tmdbId: Long,
     val status: String,
     val visibility: String = "private",
     val addedAt: Long = System.currentTimeMillis(),

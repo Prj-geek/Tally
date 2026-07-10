@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface MediaDao {
 
-    @Query("SELECT * FROM media WHERE simklId = :simklId")
-    suspend fun get(simklId: Long): MediaEntity?
+    @Query("SELECT * FROM media WHERE tmdbId = :tmdbId")
+    suspend fun get(tmdbId: Long): MediaEntity?
 
     @Query("SELECT * FROM media WHERE title LIKE '%' || :query || '%'")
     fun search(query: String): Flow<List<MediaEntity>>

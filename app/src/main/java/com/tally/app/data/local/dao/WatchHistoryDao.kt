@@ -15,11 +15,11 @@ interface WatchHistoryDao {
     @Query("SELECT * FROM watch_history WHERE userId = :userId ORDER BY watchedAt DESC")
     fun getAll(userId: String): Flow<List<WatchHistoryEntity>>
 
-    @Query("SELECT * FROM watch_history WHERE userId = :userId AND simklId = :simklId ORDER BY seasonNum, episodeNum")
-    fun getForMedia(userId: String, simklId: Long): Flow<List<WatchHistoryEntity>>
+    @Query("SELECT * FROM watch_history WHERE userId = :userId AND tmdbId = :tmdbId ORDER BY seasonNum, episodeNum")
+    fun getForMedia(userId: String, tmdbId: Long): Flow<List<WatchHistoryEntity>>
 
-    @Query("SELECT * FROM watch_history WHERE userId = :userId AND simklId = :simklId AND seasonNum = :seasonNum AND episodeNum = :episodeNum")
-    suspend fun get(userId: String, simklId: Long, seasonNum: Int?, episodeNum: Int?): WatchHistoryEntity?
+    @Query("SELECT * FROM watch_history WHERE userId = :userId AND tmdbId = :tmdbId AND seasonNum = :seasonNum AND episodeNum = :episodeNum")
+    suspend fun get(userId: String, tmdbId: Long, seasonNum: Int?, episodeNum: Int?): WatchHistoryEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entry: WatchHistoryEntity)
