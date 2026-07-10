@@ -19,6 +19,7 @@ data class TmdbTvShowDetail(
     val popularity: Double? = null,
     val status: String? = null,
     val tagline: String? = null,
+    @SerialName("original_language") val originalLanguage: String? = null,
     val networks: List<TmdbNetwork>? = null,
     val seasons: List<TmdbSeason>? = null,
 )

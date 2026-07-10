@@ -39,6 +39,7 @@ import com.tally.app.ui.search.SearchViewModel
 
 @Composable
 fun SearchScreen(
+    onItemClick: (id: Int, mediaType: String) -> Unit = { _, _ -> },
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -107,7 +108,7 @@ fun SearchScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(state.results, key = { it.id }) { result ->
-                        SearchResultItem(result = result)
+                        SearchResultItem(result = result, onClick = { onItemClick(result.id, result.mediaType ?: "movie") })
                     }
                 }
             }
@@ -135,13 +136,13 @@ private fun formatVotes(votes: Int): String = when {
 }
 
 @Composable
-private fun SearchResultItem(result: TmdbSearchResult) {
+private fun SearchResultItem(result: TmdbSearchResult, onClick: () -> Unit) {
     val posterUrl = TmdbImageUrl.poster(result.posterPath)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* TODO: navigate to detail */ }
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

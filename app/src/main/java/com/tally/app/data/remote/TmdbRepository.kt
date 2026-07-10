@@ -2,6 +2,9 @@ package com.tally.app.data.remote
 
 import com.tally.app.data.remote.api.TmdbApiService
 import com.tally.app.data.remote.model.TmdbEpisode
+import com.tally.app.data.remote.model.TmdbEpisodeGroup
+import com.tally.app.data.remote.model.TmdbEpisodeGroupDetail
+import com.tally.app.data.remote.model.TmdbEpisodeGroupsResponse
 import com.tally.app.data.remote.model.TmdbMovieDetail
 import com.tally.app.data.remote.model.TmdbSearchResult
 import com.tally.app.data.remote.model.TmdbSearchResponse
@@ -56,6 +59,28 @@ class TmdbRepository @Inject constructor(
             json.decodeFromString<TmdbSeasonResponse>(text).episodes
         } catch (_: Exception) {
             emptyList()
+        }
+    }
+
+    suspend fun getEpisodeGroups(tvId: Int): List<TmdbEpisodeGroup> {
+        val body = api.proxy(path = "tv/$tvId/episode_groups")
+        val text = body.string()
+        if (text.isBlank()) return emptyList()
+        return try {
+            json.decodeFromString<TmdbEpisodeGroupsResponse>(text).results
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun getEpisodeGroupDetail(groupId: String): TmdbEpisodeGroupDetail? {
+        val body = api.proxy(path = "tv/episode_group/$groupId")
+        val text = body.string()
+        if (text.isBlank() || text == "null") return null
+        return try {
+            json.decodeFromString<TmdbEpisodeGroupDetail>(text)
+        } catch (_: Exception) {
+            null
         }
     }
 }
