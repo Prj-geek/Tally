@@ -71,7 +71,7 @@ A TV/movie tracking app with a community brain. Track what you watch, connect wi
 
 ### Tasks
 
-- [ ] **Rewatch tracking** — Mark an episode/movie as rewatch, counter increments, tracked in user stats
+- [ ] **Rewatch tracking & Diary UI** — Mark an episode/movie as rewatch, counter increments, tracked in user stats. Includes a Diary UI to view, edit, and delete specific individual watch dates.
 - [ ] **Ratings/reviews** — Rate shows and movies on a 1–10 scale. Optional written review alongside the rating
 - [ ] **Stats dashboard** — Deeper stats: hours watched per month, most-watched genre, completion rate, streaks
 - [ ] **Achievements / badges** — Milestones (watched 100 episodes, 10 movies in a week, added 5 friends). Stored in Supabase, displayed on profile
