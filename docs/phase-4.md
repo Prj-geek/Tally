@@ -2,37 +2,28 @@
 
 ## Progress
 
-### Task 1: Rewatch tracking
-- [ ] pending
-- [ ] in progress
-- [ ] completed
+### Task 1: Rewatch tracking & Diary UI
+- [ ] **pending** — Build a Diary UI to view, edit, and delete specific individual watch dates for a movie or episode. Currently, rewatches increment `rewatchCount` and drop a new row in `watch_history`, but there is no UI to manage multiple dates.
 
 ### Task 2: Ratings / reviews
+- [ ] **pending** — Add `rating` column (INTEGER, 1-10) to watchlist table. Room migration (v7), Supabase ALTER TABLE, update SupabaseModels DTO. Rating input UI on detail screen. Optional written review alongside rating.
+
+### Task 3: Stats dashboard
 - [ ] pending
 - [ ] in progress
 - [ ] completed
 
-### Task 3: Custom lists
+### Task 4: Achievements / badges
 - [ ] pending
 - [ ] in progress
 - [ ] completed
 
-### Task 4: Stats dashboard
+### Task 5: Moderation tools
 - [ ] pending
 - [ ] in progress
 - [ ] completed
 
-### Task 5: Achievements / badges
-- [ ] pending
-- [ ] in progress
-- [ ] completed
-
-### Task 6: Moderation tools
-- [ ] pending
-- [ ] in progress
-- [ ] completed
-
-### Task 7: Onboarding flow
+### Task 6: Onboarding flow
 - [ ] pending
 - [ ] in progress
 - [ ] completed

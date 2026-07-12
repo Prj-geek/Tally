@@ -26,9 +26,9 @@ Write clear, plain-English comments in the code itself so it's easy to understan
 
 Example:
 ```kotlin
-// Fetch movie results from Simkl API based on the search query
-// Returns a list of Movie objects with title, poster, year, and simkl_id
-fun searchMovies(query: String): List<MovieSearchResult>
+// Fetch movie results from TMDB via the Edge Function proxy
+// Returns a list of TmdbSearchResult with title, poster, year, and tmdb_id
+fun search(query: String): List<TmdbSearchResult>
 ```
 
 ---
@@ -77,3 +77,15 @@ Don't over-engineer. Build what's asked, nothing more. Use the tech stack decide
 After completing a task (marking it `[x]` and logging in the Code Log), commit all code changes and push to the remote repository before moving on. The commit message should reference the phase and task number.
 
 ⚠️ `docs/` stays local — never commit or push it. Only code and build files go to GitHub.
+
+---
+
+## 10. Testing Instructions After Every Task
+
+After completing a task, provide a short testing guide so the user can verify on the emulator. Include:
+- **Happy path:** Step-by-step flow to trigger the new feature
+- **Edge cases:** What prerequisites are needed (e.g., sign-in required, empty state, no network)
+- **Expected behavior:** What the user should see at each step
+- **Common failures:** What breaks and why (e.g., "nothing happens if not signed in")
+
+Keep it concise — bullet points, not paragraphs.

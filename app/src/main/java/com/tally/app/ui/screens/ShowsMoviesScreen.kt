@@ -67,7 +67,7 @@ fun ShowsScreen(
                 if (state.showItems.isEmpty()) {
                     EmptyState("No shows in your watchlist")
                 } else {
-                    val watching = state.showItems.filter { it.hasWatchedEpisodes }
+                    val watching = state.showItems.filter { it.hasWatchedEpisodes && !it.isFullyWatched }
                     val watchlisted = state.showItems.filter { !it.hasWatchedEpisodes }
                     LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
                         if (watching.isNotEmpty()) {

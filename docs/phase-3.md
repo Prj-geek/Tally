@@ -12,22 +12,32 @@
 - [ ] in progress
 - [ ] completed
 
-### Task 3: Poster picker (fanart.tv)
+### Task 3: Poster picker (TMDB)
 - [ ] pending
 - [ ] in progress
 - [ ] completed
 
-### Task 4: Push notifications (FCM) — new episodes
+### Task 4: Trailer link
 - [ ] pending
 - [ ] in progress
 - [ ] completed
 
-### Task 5: Upcoming notifications — library movies
+### Task 5: Cast data
 - [ ] pending
 - [ ] in progress
 - [ ] completed
 
-### Task 6: Search filters
+### Task 6: Push notifications (FCM) — new episodes
+- [ ] pending
+- [ ] in progress
+- [ ] completed
+
+### Task 7: Upcoming notifications — library movies
+- [ ] pending
+- [ ] in progress
+- [ ] completed
+
+### Task 8: Search filters
 - [ ] pending
 - [ ] in progress
 - [ ] completed

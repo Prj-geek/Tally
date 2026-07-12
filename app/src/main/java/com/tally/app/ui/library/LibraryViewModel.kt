@@ -23,6 +23,7 @@ data class LibraryItem(
     val posterUrl: String?,
     val status: String,
     val hasWatchedEpisodes: Boolean = false,
+    val isFullyWatched: Boolean = false,
 )
 
 data class LibraryUiState(
@@ -60,7 +61,7 @@ class LibraryViewModel @Inject constructor(
                     showItems = entries.filter { it.mediaType == "tv" }.map {
                         it.toLibraryItem(it.tmdbId in watchedIds)
                     },
-                    movieItems = entries.filter { it.mediaType == "movie" }.map {
+                    movieItems = entries.filter { it.mediaType == "movie" && it.status != "watched" }.map {
                         it.toLibraryItem(false)
                     },
                 )
@@ -75,5 +76,6 @@ class LibraryViewModel @Inject constructor(
         posterUrl = posterPath,
         status = status,
         hasWatchedEpisodes = hasWatchedEpisodes,
+        isFullyWatched = hasWatchedEpisodes && watchedEpisodes >= totalEpisodes && totalEpisodes > 0,
     )
 }

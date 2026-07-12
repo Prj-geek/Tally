@@ -18,6 +18,8 @@ data class WatchlistEntity(
     val posterPath: String? = null,
     val status: String,
     val rewatchCount: Int = 0,
+    val totalEpisodes: Int = 0,
+    val watchedEpisodes: Int = 0,
     val visibility: String = "private",
     val addedAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),

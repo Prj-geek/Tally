@@ -38,16 +38,16 @@ When apps get big, pieces of code need to talk to each other. Hilt automatically
 
 ## 5. Retrofit + OkHttp — The Internet Messenger
 
-These two work together to talk to the **Simkl API** (the service that gives us movie/TV show data).
+These two work together to talk to the **TMDB API** (the service that gives us movie/TV show data) — but not directly. All calls route through a **Supabase Edge Function** that holds the API key server-side.
 
-- **Retrofit** — Takes the Simkl API and turns it into clean Kotlin functions. You call `search("Breaking Bad")` and it handles the rest.
-- **OkHttp** — The low-level engine that actually sends requests over the internet. Retrofit rides on top of it.
+- **Retrofit** — Takes the Edge Function proxy URL and turns it into clean Kotlin functions. You call `search("Breaking Bad")` and it handles the rest.
+- **OkHttp** — The low-level engine that actually sends requests over the internet. Retrofit rides on top of it. It also attaches the Supabase anon key to every request for Edge Function authentication.
 
 ---
 
 ## 6. Kotlinx Serialization — The Translator
 
-Converting data between formats is boring and error-prone. This library automatically converts the JSON (a text format) that Simkl returns into proper Kotlin objects the app can use. You never have to manually parse a single line of JSON.
+Converting data between formats is boring and error-prone. This library automatically converts the JSON (a text format) that TMDB returns into proper Kotlin objects the app can use. You never have to manually parse a single line of JSON.
 
 ---
 
@@ -79,6 +79,7 @@ Supabase is the service running in the cloud that handles everything shared betw
 | **Auth** | Google Sign-In. Verifies your identity |
 | **PostgreSQL Database** | Stores comments, friend connections, user profiles, and synced watch history |
 | **Realtime** | When a friend comments, it shows up live without refreshing |
+| **Edge Functions** | Proxies TMDB API calls server-side so the API key never ships in the APK |
 
 ### Why Supabase and not Firebase?
 
@@ -148,7 +149,7 @@ Determines what happens when you tap "Back" or navigate from the Home screen to 
 
 ## High-Level Data Flow
 
-1. **Metadata** (episode names, posters, descriptions) → **Simkl API** → cached in **Room** on your phone
+1. **Metadata** (episode names, posters, descriptions) → **TMDB API** (via Supabase Edge Function proxy) → cached in **Room** on your phone
 2. **User data** (what you watched, your lists) → saved in **Room** first → synced to **Supabase**
 3. **Social data** (comments, friends) → written directly to **Supabase** since it needs to be shared
 4. **Stats** (total watch time) → computed from your own watch history, no separate sync needed
