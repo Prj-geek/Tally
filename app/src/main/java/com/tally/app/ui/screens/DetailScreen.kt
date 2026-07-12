@@ -75,13 +75,6 @@ fun DetailScreen(
     val pendingEpNum = pendingEpisodeForDialog?.second
     val pendingSeasonNum = pendingEpisodeForDialog?.first
 
-    // Count unwatched predecessors in current season
-    val currentSeasonUnwatched = if (pendingEpNum != null && pendingSeasonNum != null) {
-        (1 until pendingEpNum).filter { ep ->
-            (pendingSeasonNum to ep) !in state.watchedEpisodes
-        }.size
-    } else 0
-
     // ponytail: for TV shows, hide watchlist bar when any episode is checked
     val anyEpisodeWatched = state.mediaType == "tv" && state.watchedEpisodes.isNotEmpty()
 
@@ -277,25 +270,15 @@ fun DetailScreen(
 
     // ponytail: confirm "watch previous episodes?" dialog
     if (pendingEpisodeForDialog != null && pendingEpNum != null && pendingSeasonNum != null) {
-        val seasonLabel = state.seasonLabels.getOrElse(state.selectedSeasonIndex) { "Season $pendingSeasonNum" }
-        val dialogText = if (currentSeasonUnwatched > 0 && pendingSeasonNum > 1) {
-            "You have unwatched episodes in $seasonLabel and previous seasons. Watch them all?"
-        } else if (currentSeasonUnwatched > 0) {
-            "You haven't watched episodes 1-${pendingEpNum - 1} in $seasonLabel. Watch them too?"
-        } else {
-            "You have unwatched episodes in previous seasons. Watch them all?"
-        }
-
         AlertDialog(
             onDismissRequest = { pendingEpisodeForDialog = null },
-            title = { Text("Watch previous episodes?") },
-            text = { Text(dialogText) },
+            title = { Text("Mark previous episodes as watched?") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.onWatchAllPrevious(pendingSeasonNum, pendingEpNum)
                     pendingEpisodeForDialog = null
                 }) {
-                    Text("Yes, watch all")
+                    Text("Yes")
                 }
             },
             dismissButton = {
@@ -303,7 +286,7 @@ fun DetailScreen(
                     viewModel.onToggleEpisodeWatched(pendingSeasonNum, pendingEpNum)
                     pendingEpisodeForDialog = null
                 }) {
-                    Text("Just this one")
+                    Text("No")
                 }
             },
         )
