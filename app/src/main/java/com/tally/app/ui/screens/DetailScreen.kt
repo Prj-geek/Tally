@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -67,6 +68,16 @@ fun DetailScreen(
             android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
         }
     }
+
+    // ponytail: dialog state for "watch previous episodes?" prompt
+    var pendingEpisodeForDialog by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    val pendingEpNum = pendingEpisodeForDialog?.second
+    val pendingSeasonNum = pendingEpisodeForDialog?.first
+    val unwatchedPredecessors = if (pendingEpNum != null && pendingSeasonNum != null) {
+        (1 until pendingEpNum).filter { ep ->
+            (pendingSeasonNum to ep) !in state.watchedEpisodes
+        }
+    } else emptyList()
 
     Scaffold(
         topBar = {
@@ -232,7 +243,19 @@ fun DetailScreen(
                                 episode = episode,
                                 isWatched = isWatched,
                                 onToggleWatched = {
-                                    viewModel.onToggleEpisodeWatched(episode.seasonNumber, episode.episodeNumber)
+                                    if (!isWatched) {
+                                        // Check if there are unwatched episodes before this one
+                                        val earlier = (1 until episode.episodeNumber).filter { ep ->
+                                            (episode.seasonNumber to ep) !in state.watchedEpisodes
+                                        }
+                                        if (earlier.isNotEmpty()) {
+                                            pendingEpisodeForDialog = episode.seasonNumber to episode.episodeNumber
+                                        } else {
+                                            viewModel.onToggleEpisodeWatched(episode.seasonNumber, episode.episodeNumber)
+                                        }
+                                    } else {
+                                        viewModel.onToggleEpisodeWatched(episode.seasonNumber, episode.episodeNumber)
+                                    }
                                 },
                             )
                         }
@@ -240,6 +263,33 @@ fun DetailScreen(
                 }
             }
         }
+    }
+
+    // ponytail: confirm "watch previous episodes?" dialog
+    if (pendingEpisodeForDialog != null && unwatchedPredecessors.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = { pendingEpisodeForDialog = null },
+            title = { Text("Watch previous episodes?") },
+            text = {
+                Text("You haven't watched episodes ${unwatchedPredecessors.first()}-${unwatchedPredecessors.last()}. Watch them too?")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.onWatchEpisodes(pendingSeasonNum!!, 1, pendingEpNum!!)
+                    pendingEpisodeForDialog = null
+                }) {
+                    Text("Yes, watch all")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    viewModel.onToggleEpisodeWatched(pendingSeasonNum!!, pendingEpNum!!)
+                    pendingEpisodeForDialog = null
+                }) {
+                    Text("Just this one")
+                }
+            },
+        )
     }
 }
 

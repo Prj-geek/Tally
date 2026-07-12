@@ -246,6 +246,25 @@ class DetailViewModel @Inject constructor(
         }
     }
 
+    // ponytail: batch watch episodes from..to in a season
+    fun onWatchEpisodes(seasonNum: Int, from: Int, to: Int) {
+        val uid = userId
+        if (uid == null) {
+            viewModelScope.launch { _error.emit("Sign in to track episodes") }
+            return
+        }
+        viewModelScope.launch {
+            for (ep in from..to) {
+                val existing = watchHistoryDao.get(uid, mediaId.toLong(), seasonNum, ep)
+                if (existing == null) {
+                    watchHistoryDao.upsert(
+                        WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = seasonNum, episodeNum = ep)
+                    )
+                }
+            }
+        }
+    }
+
     fun onToggleSeasonWatched(seasonNum: Int, episodeCount: Int, watchAll: Boolean) {
         val uid = userId
         if (uid == null) {
