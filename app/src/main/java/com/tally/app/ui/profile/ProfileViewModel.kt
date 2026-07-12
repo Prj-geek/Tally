@@ -3,6 +3,8 @@ package com.tally.app.ui.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tally.app.data.auth.AuthRepository
+import com.tally.app.data.local.dao.WatchHistoryDao
+import com.tally.app.data.local.dao.WatchlistDao
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -11,6 +13,8 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,9 +24,23 @@ sealed interface AuthState {
     data class SignedIn(val userId: String) : AuthState
 }
 
+data class WatchedItem(
+    val tmdbId: Long,
+    val mediaType: String,
+    val title: String,
+    val posterUrl: String?,
+)
+
+data class WatchedState(
+    val watchedMovies: List<WatchedItem> = emptyList(),
+    val watchedShows: List<WatchedItem> = emptyList(),
+)
+
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val watchlistDao: WatchlistDao,
+    private val watchHistoryDao: WatchHistoryDao,
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
@@ -30,6 +48,9 @@ class ProfileViewModel @Inject constructor(
 
     private val _error = MutableSharedFlow<String>()
     val error: SharedFlow<String> = _error.asSharedFlow()
+
+    private val _watchedState = MutableStateFlow(WatchedState())
+    val watchedState: StateFlow<WatchedState> = _watchedState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -43,6 +64,25 @@ class ProfileViewModel @Inject constructor(
                     is SessionStatus.RefreshFailure -> AuthState.SignedOut
                 }
             }
+        }
+    }
+
+    // ponytail: load watched data when user signs in
+    fun loadWatched() {
+        val uid = (authState.value as? AuthState.SignedIn)?.userId ?: return
+        viewModelScope.launch {
+            combine(
+                watchlistDao.getByStatus(uid, "watched"),
+                watchHistoryDao.getAllWatchedTmdbIds(uid).map { it.toSet() },
+            ) { watchedEntries, showTmdbIds ->
+                WatchedState(
+                    watchedMovies = watchedEntries
+                        .filter { it.mediaType == "movie" }
+                        .map { WatchedItem(it.tmdbId, "movie", it.title, it.posterPath) },
+                    // ponytail: shows with watched episodes — full "all aired watched" check TBD
+                    watchedShows = emptyList(),
+                )
+            }.collect { _watchedState.value = it }
         }
     }
 

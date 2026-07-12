@@ -64,13 +64,27 @@ fun ShowsScreen(
             }
         } else {
             if (selectedTab == 0) {
-                val items = state.showItems
-                if (items.isEmpty()) {
+                if (state.showItems.isEmpty()) {
                     EmptyState("No shows in your watchlist")
                 } else {
+                    val watching = state.showItems.filter { it.hasWatchedEpisodes }
+                    val watchlisted = state.showItems.filter { !it.hasWatchedEpisodes }
                     LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
-                        items(items, key = { it.tmdbId }) { item ->
-                            LibraryRow(item) { onItemClick(item.tmdbId.toInt(), "tv") }
+                        if (watching.isNotEmpty()) {
+                            item(key = "header_watching") {
+                                SectionHeader("Currently Watching")
+                            }
+                            items(watching, key = { "w_${it.tmdbId}" }) { item ->
+                                LibraryRow(item) { onItemClick(item.tmdbId.toInt(), "tv") }
+                            }
+                        }
+                        if (watchlisted.isNotEmpty()) {
+                            item(key = "header_watchlisted") {
+                                SectionHeader("Watchlisted")
+                            }
+                            items(watchlisted, key = { "wl_${it.tmdbId}" }) { item ->
+                                LibraryRow(item) { onItemClick(item.tmdbId.toInt(), "tv") }
+                            }
                         }
                     }
                 }
@@ -121,6 +135,16 @@ fun MoviesScreen(
             }
         }
     }
+}
+
+@Composable
+private fun SectionHeader(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        color = MaterialTheme.colorScheme.primary,
+    )
 }
 
 @Composable

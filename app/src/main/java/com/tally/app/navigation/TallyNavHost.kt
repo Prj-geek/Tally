@@ -45,7 +45,11 @@ fun TallyNavHost(navController: NavHostController, modifier: Modifier = Modifier
         }
 
         composable(Routes.PROFILE) {
-            ProfileScreen()
+            ProfileScreen(
+                onItemClick = { id, mediaType ->
+                    navController.navigate(Routes.detail(mediaType, id))
+                },
+            )
         }
 
         composable(

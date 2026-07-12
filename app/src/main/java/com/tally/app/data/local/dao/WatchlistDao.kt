@@ -20,6 +20,9 @@ interface WatchlistDao {
     @Query("SELECT * FROM watchlist WHERE userId = :userId AND mediaType = :mediaType ORDER BY updatedAt DESC")
     fun getByMediaType(userId: String, mediaType: String): Flow<List<WatchlistEntity>>
 
+    @Query("SELECT * FROM watchlist WHERE userId = :userId AND status = :status ORDER BY updatedAt DESC")
+    fun getByStatus(userId: String, status: String): Flow<List<WatchlistEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entry: WatchlistEntity)
 
