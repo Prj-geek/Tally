@@ -242,6 +242,7 @@ class DetailViewModel @Inject constructor(
                 watchHistoryDao.upsert(
                     WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = seasonNum, episodeNum = episodeNum)
                 )
+                ensureInWatchlist()
             }
         }
     }
@@ -262,6 +263,7 @@ class DetailViewModel @Inject constructor(
                     )
                 }
             }
+            ensureInWatchlist()
         }
     }
 
@@ -297,6 +299,24 @@ class DetailViewModel @Inject constructor(
                     }
                 } catch (_: Exception) { }
             }
+            ensureInWatchlist()
+        }
+    }
+
+    // ponytail: ensure show/movie is in watchlist when user tracks it
+    private suspend fun ensureInWatchlist() {
+        val uid = userId ?: return
+        val current = watchlistDao.get(uid, mediaId.toLong())
+        if (current == null) {
+            watchlistDao.upsert(
+                WatchlistEntity(
+                    userId = uid, tmdbId = mediaId.toLong(),
+                    mediaType = mediaType, title = _state.value.title,
+                    posterPath = _state.value.posterUrl,
+                    status = STATUS_WATCHLIST,
+                )
+            )
+            _state.value = _state.value.copy(isWatchlisted = true)
         }
     }
 
