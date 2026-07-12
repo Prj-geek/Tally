@@ -14,6 +14,9 @@ interface WatchHistoryDao {
     @Query("SELECT * FROM watch_history WHERE userId = :userId AND tmdbId = :tmdbId ORDER BY seasonNum, episodeNum")
     fun getForMedia(userId: String, tmdbId: Long): Flow<List<WatchHistoryEntity>>
 
+    @Query("SELECT DISTINCT tmdbId FROM watch_history WHERE userId = :userId")
+    fun getAllWatchedTmdbIds(userId: String): Flow<List<Long>>
+
     @Query("SELECT * FROM watch_history WHERE userId = :userId AND tmdbId = :tmdbId AND seasonNum = :seasonNum AND episodeNum = :episodeNum")
     suspend fun get(userId: String, tmdbId: Long, seasonNum: Int?, episodeNum: Int?): WatchHistoryEntity?
 

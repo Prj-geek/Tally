@@ -10,7 +10,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -49,25 +50,25 @@ class LibraryViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            watchlistDao.getAll(uid).collect { entries ->
-                // Check which shows have watched episodes
-                val showEntries = entries.filter { it.mediaType == "tv" }
-                val showIdsWithEpisodes = mutableSetOf<Long>()
-                for (show in showEntries) {
-                    val history = watchHistoryDao.getForMedia(uid, show.tmdbId).first()
-                    if (history.isNotEmpty()) showIdsWithEpisodes.add(show.tmdbId)
-                }
+            val watchlistFlow = watchlistDao.getAll(uid)
+            // ponytail: collect all tmdbIds that have watch history entries
+            val historyFlow = watchHistoryDao.getAllWatchedTmdbIds(uid).map { it.toSet() }
 
-                _state.value = LibraryUiState(
+            combine(watchlistFlow, historyFlow) { entries, watchedIds ->
+                LibraryUiState(
                     isLoading = false,
-                    showItems = showEntries.map { it.toLibraryItem(it.tmdbId in showIdsWithEpisodes) },
-                    movieItems = entries.filter { it.mediaType == "movie" }.map { it.toLibraryItem() },
+                    showItems = entries
+                        .filter { it.mediaType == "tv" }
+                        .map { it.toLibraryItem(it.tmdbId in watchedIds) },
+                    movieItems = entries
+                        .filter { it.mediaType == "movie" }
+                        .map { it.toLibraryItem(false) },
                 )
-            }
+            }.collect { _state.value = it }
         }
     }
 
-    private fun WatchlistEntity.toLibraryItem(hasWatchedEpisodes: Boolean = false) = LibraryItem(
+    private fun WatchlistEntity.toLibraryItem(hasWatchedEpisodes: Boolean) = LibraryItem(
         tmdbId = tmdbId,
         mediaType = mediaType,
         title = title,
