@@ -21,6 +21,7 @@ import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -47,6 +48,8 @@ fun ShowsScreen(
     val state by viewModel.state.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Watchlist", "Upcoming")
+
+    LaunchedEffect(Unit) { viewModel.load() }
 
     Column(modifier = Modifier.fillMaxSize()) {
         PrimaryTabRow(selectedTabIndex = selectedTab) {
@@ -87,6 +90,8 @@ fun MoviesScreen(
     val state by viewModel.state.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Watchlist", "Upcoming")
+
+    LaunchedEffect(Unit) { viewModel.load() }
 
     Column(modifier = Modifier.fillMaxSize()) {
         PrimaryTabRow(selectedTabIndex = selectedTab) {
@@ -148,12 +153,11 @@ internal fun LibraryRow(item: LibraryItem, onClick: () -> Unit) {
 
         Column(modifier = Modifier.weight(1f)) {
             Text(text = item.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val label = when {
-                item.mediaType == "tv" && item.hasWatchedEpisodes && item.status == "watched" -> "Currently Watching"
-                item.status == "watched" -> "Watched"
-                else -> "Watchlisted"
-            }
-            Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = if (item.status == "watched") "Watched" else "Watchlisted",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
