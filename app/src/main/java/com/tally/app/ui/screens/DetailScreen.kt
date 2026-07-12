@@ -208,15 +208,33 @@ fun DetailScreen(
 
                     if (state.mediaType == "tv" && state.seasonLabels.isNotEmpty()) {
                         item {
-                            SeasonSelector(
+                            val currentSeasonNum = state.episodes.firstOrNull()?.seasonNumber ?: (state.selectedSeasonIndex + 1)
+                            val watchedInSeason = state.watchedEpisodes.filter { it.first == currentSeasonNum }.size
+                            val totalInSeason = state.episodes.size
+                            val allWatched = totalInSeason > 0 && watchedInSeason == totalInSeason
+
+                            SeasonHeader(
                                 seasonLabels = state.seasonLabels,
                                 selectedIndex = state.selectedSeasonIndex,
                                 onSeasonSelected = viewModel::onSeasonSelected,
+                                watchedCount = watchedInSeason,
+                                totalCount = totalInSeason,
+                                allWatched = allWatched,
+                                onToggleAll = { watchAll ->
+                                    viewModel.onToggleSeasonWatched(currentSeasonNum, totalInSeason, watchAll)
+                                },
                             )
                         }
 
                         items(state.episodes, key = { it.id }) { episode ->
-                            EpisodeItem(episode = episode)
+                            val isWatched = (episode.seasonNumber to episode.episodeNumber) in state.watchedEpisodes
+                            EpisodeItem(
+                                episode = episode,
+                                isWatched = isWatched,
+                                onToggleWatched = {
+                                    viewModel.onToggleEpisodeWatched(episode.seasonNumber, episode.episodeNumber)
+                                },
+                            )
                         }
                     }
                 }
@@ -278,21 +296,34 @@ private fun WatchedCheckbox(
 }
 
 @Composable
-private fun SeasonSelector(
+private fun SeasonHeader(
     seasonLabels: List<String>,
     selectedIndex: Int,
     onSeasonSelected: (Int) -> Unit,
+    watchedCount: Int,
+    totalCount: Int,
+    allWatched: Boolean,
+    onToggleAll: (Boolean) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Text(
-            text = "Seasons",
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        TextButton(onClick = { expanded = true }) {
-            Text(text = seasonLabels.getOrElse(selectedIndex) { "Season ${selectedIndex + 1}" })
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            TextButton(onClick = { expanded = true }) {
+                Text(text = seasonLabels.getOrElse(selectedIndex) { "Season ${selectedIndex + 1}" })
+            }
+            if (totalCount > 0) {
+                TextButton(onClick = { onToggleAll(!allWatched) }) {
+                    Text(
+                        text = if (allWatched) "Unwatch All" else "Watch All ($watchedCount/$totalCount)",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             seasonLabels.forEachIndexed { index, label ->
@@ -309,18 +340,28 @@ private fun SeasonSelector(
 }
 
 @Composable
-private fun EpisodeItem(episode: com.tally.app.data.remote.model.TmdbEpisode) {
+private fun EpisodeItem(
+    episode: com.tally.app.data.remote.model.TmdbEpisode,
+    isWatched: Boolean,
+    onToggleWatched: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.Top,
     ) {
+        Checkbox(
+            checked = isWatched,
+            onCheckedChange = { onToggleWatched() },
+            modifier = Modifier.padding(end = 4.dp),
+        )
+
         Text(
             text = "${episode.episodeNumber}.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(28.dp),
+            modifier = Modifier.width(24.dp),
         )
 
         Column(modifier = Modifier.weight(1f)) {

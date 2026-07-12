@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tally.app.data.auth.AuthRepository
 import com.tally.app.data.local.SyncStatus
+import com.tally.app.data.local.dao.WatchHistoryDao
 import com.tally.app.data.local.dao.WatchlistDao
+import com.tally.app.data.local.entity.WatchHistoryEntity
 import com.tally.app.data.local.entity.WatchlistEntity
 import com.tally.app.data.remote.EpisodeGroupOverrideRepository
 import com.tally.app.data.remote.TmdbImageUrl
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -50,6 +53,8 @@ data class DetailUiState(
     val isWatchlisted: Boolean = false,
     val isWatched: Boolean = false,
     val rewatchCount: Int = 0,
+    // ponytail: set of (seasonNum, episodeNum) pairs that are watched
+    val watchedEpisodes: Set<Pair<Int, Int>> = emptySet(),
 )
 
 @HiltViewModel
@@ -57,6 +62,7 @@ class DetailViewModel @Inject constructor(
     private val repository: TmdbRepository,
     private val episodeGroupOverrideRepository: EpisodeGroupOverrideRepository,
     private val watchlistDao: WatchlistDao,
+    private val watchHistoryDao: WatchHistoryDao,
     private val authRepository: AuthRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -183,6 +189,7 @@ class DetailViewModel @Inject constructor(
             }
             // ponytail: load watchlist status after details so it doesn't get overwritten
             loadWatchlistStatus()
+            loadWatchedEpisodes()
         }
     }
 
@@ -205,6 +212,62 @@ class DetailViewModel @Inject constructor(
                     isWatched = entry.status == STATUS_WATCHED,
                     rewatchCount = entry.rewatchCount,
                 )
+            }
+        }
+    }
+
+    // ponytail: collect watched episodes from DB, keep UI state in sync
+    private fun loadWatchedEpisodes() {
+        val uid = userId ?: return
+        viewModelScope.launch {
+            watchHistoryDao.getForMedia(uid, mediaId.toLong()).collect { entries ->
+                _state.value = _state.value.copy(
+                    watchedEpisodes = entries.map { it.seasonNum!! to it.episodeNum!! }.toSet()
+                )
+            }
+        }
+    }
+
+    fun onToggleEpisodeWatched(seasonNum: Int, episodeNum: Int) {
+        val uid = userId
+        if (uid == null) {
+            viewModelScope.launch { _error.emit("Sign in to track episodes") }
+            return
+        }
+        viewModelScope.launch {
+            val existing = watchHistoryDao.get(uid, mediaId.toLong(), seasonNum, episodeNum)
+            if (existing != null) {
+                watchHistoryDao.delete(existing.id)
+            } else {
+                watchHistoryDao.upsert(
+                    WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = seasonNum, episodeNum = episodeNum)
+                )
+            }
+        }
+    }
+
+    fun onToggleSeasonWatched(seasonNum: Int, episodeCount: Int, watchAll: Boolean) {
+        val uid = userId
+        if (uid == null) {
+            viewModelScope.launch { _error.emit("Sign in to track episodes") }
+            return
+        }
+        viewModelScope.launch {
+            if (watchAll) {
+                for (ep in 1..episodeCount) {
+                    val existing = watchHistoryDao.get(uid, mediaId.toLong(), seasonNum, ep)
+                    if (existing == null) {
+                        watchHistoryDao.upsert(
+                            WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = seasonNum, episodeNum = ep)
+                        )
+                    }
+                }
+            } else {
+                // Unwatch all: delete all episodes for this season
+                watchHistoryDao.getForMedia(uid, mediaId.toLong())
+                    .first()
+                    .filter { it.seasonNum == seasonNum }
+                    .forEach { watchHistoryDao.delete(it.id) }
             }
         }
     }
