@@ -350,7 +350,12 @@ class DetailViewModel @Inject constructor(
             if (current == null) {
                 // Not in any list → add to watchlist
                 watchlistDao.upsert(
-                    WatchlistEntity(userId = uid, tmdbId = mediaId.toLong(), status = STATUS_WATCHLIST)
+                    WatchlistEntity(
+                        userId = uid, tmdbId = mediaId.toLong(),
+                        mediaType = mediaType, title = _state.value.title,
+                        posterPath = _state.value.posterUrl,
+                        status = STATUS_WATCHLIST,
+                    )
                 )
                 _state.value = _state.value.copy(isWatchlisted = true, isWatched = false, rewatchCount = 0)
             } else if (current.status == STATUS_WATCHLIST) {
@@ -375,7 +380,12 @@ class DetailViewModel @Inject constructor(
                 watchlistDao.upsert(current.copy(status = STATUS_WATCHED, rewatchCount = 0, updatedAt = System.currentTimeMillis()))
             } else {
                 watchlistDao.upsert(
-                    WatchlistEntity(userId = uid, tmdbId = mediaId.toLong(), status = STATUS_WATCHED)
+                    WatchlistEntity(
+                        userId = uid, tmdbId = mediaId.toLong(),
+                        mediaType = mediaType, title = _state.value.title,
+                        posterPath = _state.value.posterUrl,
+                        status = STATUS_WATCHED,
+                    )
                 )
             }
             _state.value = _state.value.copy(isWatchlisted = false, isWatched = true, rewatchCount = 0)

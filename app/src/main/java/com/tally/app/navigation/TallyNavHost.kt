@@ -20,7 +20,11 @@ fun TallyNavHost(navController: NavHostController, modifier: Modifier = Modifier
         modifier = modifier,
     ) {
         composable(Routes.LIBRARY) {
-            LibraryScreen()
+            LibraryScreen(
+                onItemClick = { id, mediaType ->
+                    navController.navigate(Routes.detail(mediaType, id))
+                },
+            )
         }
 
         composable(Routes.SEARCH) {
