@@ -5,6 +5,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -73,11 +74,16 @@ fun DetailScreen(
     var pendingEpisodeForDialog by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val pendingEpNum = pendingEpisodeForDialog?.second
     val pendingSeasonNum = pendingEpisodeForDialog?.first
-    val unwatchedPredecessors = if (pendingEpNum != null && pendingSeasonNum != null) {
+
+    // Count unwatched predecessors in current season
+    val currentSeasonUnwatched = if (pendingEpNum != null && pendingSeasonNum != null) {
         (1 until pendingEpNum).filter { ep ->
             (pendingSeasonNum to ep) !in state.watchedEpisodes
-        }
-    } else emptyList()
+        }.size
+    } else 0
+
+    // ponytail: for TV shows, hide watchlist bar when any episode is checked
+    val anyEpisodeWatched = state.mediaType == "tv" && state.watchedEpisodes.isNotEmpty()
 
     Scaffold(
         topBar = {
@@ -92,9 +98,9 @@ fun DetailScreen(
             )
         },
         bottomBar = {
-            // ponytail: only the watchlist button animates out — checkbox stays visible
+            // ponytail: hide bar when watched (movie) or when any episode is checked (TV)
             AnimatedVisibility(
-                visible = !state.isWatched,
+                visible = !state.isWatched && !anyEpisodeWatched,
                 exit = slideOutVertically(targetOffsetY = { it }),
             ) {
                 Surface(tonalElevation = 3.dp) {
@@ -126,6 +132,7 @@ fun DetailScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 80.dp),
                 ) {
                     item {
                         state.backdropUrl?.let { url ->
@@ -144,7 +151,7 @@ fun DetailScreen(
                     }
 
                     item {
-                        // ponytail: title row with watched checkbox pinned right — always visible
+                        // ponytail: title row — watched checkbox only for movies, not TV
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -156,12 +163,14 @@ fun DetailScreen(
                                 style = MaterialTheme.typography.headlineMedium,
                                 modifier = Modifier.weight(1f),
                             )
-                            WatchedCheckbox(
-                                isWatched = state.isWatched,
-                                rewatchCount = state.rewatchCount,
-                                onCheckWatched = viewModel::onCheckWatched,
-                                onUncheckWatched = viewModel::onUncheckWatched,
-                            )
+                            if (state.mediaType == "movie") {
+                                WatchedCheckbox(
+                                    isWatched = state.isWatched,
+                                    rewatchCount = state.rewatchCount,
+                                    onCheckWatched = viewModel::onCheckWatched,
+                                    onUncheckWatched = viewModel::onUncheckWatched,
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -244,11 +253,12 @@ fun DetailScreen(
                                 isWatched = isWatched,
                                 onToggleWatched = {
                                     if (!isWatched) {
-                                        // Check if there are unwatched episodes before this one
-                                        val earlier = (1 until episode.episodeNumber).filter { ep ->
+                                        // Check if there are unwatched episodes before this one (current or previous seasons)
+                                        val earlierInSeason = (1 until episode.episodeNumber).any { ep ->
                                             (episode.seasonNumber to ep) !in state.watchedEpisodes
                                         }
-                                        if (earlier.isNotEmpty()) {
+                                        val hasPreviousSeasons = episode.seasonNumber > 1
+                                        if (earlierInSeason || hasPreviousSeasons) {
                                             pendingEpisodeForDialog = episode.seasonNumber to episode.episodeNumber
                                         } else {
                                             viewModel.onToggleEpisodeWatched(episode.seasonNumber, episode.episodeNumber)
@@ -266,16 +276,23 @@ fun DetailScreen(
     }
 
     // ponytail: confirm "watch previous episodes?" dialog
-    if (pendingEpisodeForDialog != null && unwatchedPredecessors.isNotEmpty()) {
+    if (pendingEpisodeForDialog != null && pendingEpNum != null && pendingSeasonNum != null) {
+        val seasonLabel = state.seasonLabels.getOrElse(state.selectedSeasonIndex) { "Season $pendingSeasonNum" }
+        val dialogText = if (currentSeasonUnwatched > 0 && pendingSeasonNum > 1) {
+            "You have unwatched episodes in $seasonLabel and previous seasons. Watch them all?"
+        } else if (currentSeasonUnwatched > 0) {
+            "You haven't watched episodes 1-${pendingEpNum - 1} in $seasonLabel. Watch them too?"
+        } else {
+            "You have unwatched episodes in previous seasons. Watch them all?"
+        }
+
         AlertDialog(
             onDismissRequest = { pendingEpisodeForDialog = null },
             title = { Text("Watch previous episodes?") },
-            text = {
-                Text("You haven't watched episodes ${unwatchedPredecessors.first()}-${unwatchedPredecessors.last()}. Watch them too?")
-            },
+            text = { Text(dialogText) },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.onWatchEpisodes(pendingSeasonNum!!, 1, pendingEpNum!!)
+                    viewModel.onWatchAllPrevious(pendingSeasonNum, pendingEpNum)
                     pendingEpisodeForDialog = null
                 }) {
                     Text("Yes, watch all")
@@ -283,7 +300,7 @@ fun DetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = {
-                    viewModel.onToggleEpisodeWatched(pendingSeasonNum!!, pendingEpNum!!)
+                    viewModel.onToggleEpisodeWatched(pendingSeasonNum, pendingEpNum)
                     pendingEpisodeForDialog = null
                 }) {
                     Text("Just this one")

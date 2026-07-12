@@ -265,6 +265,53 @@ class DetailViewModel @Inject constructor(
         }
     }
 
+    // ponytail: watch all episodes up to target — current season partial + all previous seasons full
+    fun onWatchAllPrevious(targetSeason: Int, targetEpisode: Int) {
+        val uid = userId
+        if (uid == null) {
+            viewModelScope.launch { _error.emit("Sign in to track episodes") }
+            return
+        }
+        viewModelScope.launch {
+            // Current season: 1..targetEpisode
+            for (ep in 1..targetEpisode) {
+                val existing = watchHistoryDao.get(uid, mediaId.toLong(), targetSeason, ep)
+                if (existing == null) {
+                    watchHistoryDao.upsert(
+                        WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = targetSeason, episodeNum = ep)
+                    )
+                }
+            }
+            // Previous seasons: get season numbers, load episodes from API, watch all
+            val previousSeasons = allSeasonNumbers().filter { it < targetSeason }
+            for (season in previousSeasons) {
+                try {
+                    val episodes = repository.getSeasonEpisodes(mediaId, season)
+                    for (ep in episodes) {
+                        val existing = watchHistoryDao.get(uid, mediaId.toLong(), season, ep.episodeNumber)
+                        if (existing == null) {
+                            watchHistoryDao.upsert(
+                                WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = season, episodeNum = ep.episodeNumber)
+                            )
+                        }
+                    }
+                } catch (_: Exception) { }
+            }
+        }
+    }
+
+    // ponytail: all season numbers from cached data
+    private fun allSeasonNumbers(): List<Int> {
+        if (_state.value.usingEpisodeGroup) {
+            return cachedEpisodeGroups
+                ?.flatMap { it.episodes.map { ep -> ep.seasonNumber } }
+                ?.distinct()
+                ?.sorted()
+                ?: emptyList()
+        }
+        return cachedSeasonNumbers
+    }
+
     fun onToggleSeasonWatched(seasonNum: Int, episodeCount: Int, watchAll: Boolean) {
         val uid = userId
         if (uid == null) {
