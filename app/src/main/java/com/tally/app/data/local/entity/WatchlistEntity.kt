@@ -14,6 +14,7 @@ data class WatchlistEntity(
     val userId: String,
     val tmdbId: Long,
     val status: String,
+    val rewatchCount: Int = 0,
     val visibility: String = "private",
     val addedAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),

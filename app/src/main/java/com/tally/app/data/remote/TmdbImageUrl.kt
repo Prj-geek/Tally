@@ -1,21 +1,14 @@
 package com.tally.app.data.remote
 
+// ponytail: three wrappers over one private builder — callers stay readable
 object TmdbImageUrl {
 
-    private const val IMAGE_BASE = "https://image.tmdb.org/t/p"
+    private const val BASE = "https://image.tmdb.org/t/p"
 
-    fun poster(posterPath: String?, size: String = "w500"): String? {
-        if (posterPath.isNullOrBlank()) return null
-        return "$IMAGE_BASE/$size$posterPath"
-    }
+    private fun url(path: String?, size: String): String? =
+        if (path.isNullOrBlank()) null else "$BASE/$size$path"
 
-    fun backdrop(backdropPath: String?, size: String = "w1280"): String? {
-        if (backdropPath.isNullOrBlank()) return null
-        return "$IMAGE_BASE/$size$backdropPath"
-    }
-
-    fun still(stillPath: String?, size: String = "w300"): String? {
-        if (stillPath.isNullOrBlank()) return null
-        return "$IMAGE_BASE/$size$stillPath"
-    }
+    fun poster(path: String?, size: String = "w500") = url(path, size)
+    fun backdrop(path: String?, size: String = "w1280") = url(path, size)
+    fun still(path: String?, size: String = "w300") = url(path, size)
 }

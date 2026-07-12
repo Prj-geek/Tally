@@ -20,67 +20,37 @@ class TmdbRepository @Inject constructor(
     private val json: Json,
 ) {
 
+    // ponytail: single decode helper, replaces copy-paste proxy→read→decode→catch ×5
+    private suspend inline fun <reified T> fetch(path: String, params: Map<String, String> = emptyMap()): T? {
+        val text = api.proxy(path = path, params = params).string()
+        if (text.isBlank() || text == "null") return null
+        return try {
+            json.decodeFromString<T>(text)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     suspend fun search(query: String): List<TmdbSearchResult> {
-        val body = api.proxy(
+        val response = fetch<TmdbSearchResponse>(
             path = "search/multi",
             params = mapOf("query" to query, "language" to "en-US"),
-        )
-        val response = json.decodeFromString<TmdbSearchResponse>(body.string())
+        ) ?: return emptyList()
         return response.results.filter { it.mediaType == "movie" || it.mediaType == "tv" }
     }
 
-    suspend fun getMovieDetails(movieId: Int): TmdbMovieDetail? {
-        val body = api.proxy(path = "movie/$movieId")
-        val text = body.string()
-        if (text.isBlank() || text == "null") return null
-        return try {
-            json.decodeFromString<TmdbMovieDetail>(text)
-        } catch (_: Exception) {
-            null
-        }
-    }
+    suspend fun getMovieDetails(movieId: Int): TmdbMovieDetail? =
+        fetch("movie/$movieId")
 
-    suspend fun getTvShowDetails(tvId: Int): TmdbTvShowDetail? {
-        val body = api.proxy(path = "tv/$tvId")
-        val text = body.string()
-        if (text.isBlank() || text == "null") return null
-        return try {
-            json.decodeFromString<TmdbTvShowDetail>(text)
-        } catch (_: Exception) {
-            null
-        }
-    }
+    suspend fun getTvShowDetails(tvId: Int): TmdbTvShowDetail? =
+        fetch("tv/$tvId")
 
-    suspend fun getSeasonEpisodes(tvId: Int, seasonNumber: Int): List<TmdbEpisode> {
-        val body = api.proxy(path = "tv/$tvId/season/$seasonNumber")
-        val text = body.string()
-        if (text.isBlank() || text == "null") return emptyList()
-        return try {
-            json.decodeFromString<TmdbSeasonResponse>(text).episodes
-        } catch (_: Exception) {
-            emptyList()
-        }
-    }
+    suspend fun getSeasonEpisodes(tvId: Int, seasonNumber: Int): List<TmdbEpisode> =
+        fetch<TmdbSeasonResponse>("tv/$tvId/season/$seasonNumber")?.episodes.orEmpty()
 
-    suspend fun getEpisodeGroups(tvId: Int): List<TmdbEpisodeGroup> {
-        val body = api.proxy(path = "tv/$tvId/episode_groups")
-        val text = body.string()
-        if (text.isBlank()) return emptyList()
-        return try {
-            json.decodeFromString<TmdbEpisodeGroupsResponse>(text).results
-        } catch (_: Exception) {
-            emptyList()
-        }
-    }
+    suspend fun getEpisodeGroups(tvId: Int): List<TmdbEpisodeGroup> =
+        fetch<TmdbEpisodeGroupsResponse>("tv/$tvId/episode_groups")?.results.orEmpty()
 
-    suspend fun getEpisodeGroupDetail(groupId: String): TmdbEpisodeGroupDetail? {
-        val body = api.proxy(path = "tv/episode_group/$groupId")
-        val text = body.string()
-        if (text.isBlank() || text == "null") return null
-        return try {
-            json.decodeFromString<TmdbEpisodeGroupDetail>(text)
-        } catch (_: Exception) {
-            null
-        }
-    }
+    suspend fun getEpisodeGroupDetail(groupId: String): TmdbEpisodeGroupDetail? =
+        fetch("tv/episode_group/$groupId")
 }

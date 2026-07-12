@@ -1,6 +1,7 @@
 package com.tally.app.ui.screens
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -25,7 +29,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -38,7 +44,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,6 +80,26 @@ fun DetailScreen(
                 windowInsets = WindowInsets(0, 0, 0, 0),
             )
         },
+        bottomBar = {
+            // ponytail: only the watchlist button animates out — checkbox stays visible
+            AnimatedVisibility(
+                visible = !state.isWatched,
+                exit = slideOutVertically(targetOffsetY = { it }),
+            ) {
+                Surface(tonalElevation = 3.dp) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        OutlinedButton(onClick = viewModel::onToggleWatchlist) {
+                            Text(if (state.isWatchlisted) "Watchlisted" else "Add to Watchlist")
+                        }
+                    }
+                }
+            }
+        },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { padding ->
         if (state.isLoading) {
@@ -88,100 +113,167 @@ fun DetailScreen(
                     Text(text = err, style = MaterialTheme.typography.bodyLarge)
                 }
             } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                item {
-                    state.backdropUrl?.let { url ->
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(url)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = null,
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    item {
+                        state.backdropUrl?.let { url ->
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(url)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(16f / 9f),
+                                contentScale = ContentScale.Crop,
+                            )
+                        }
+                    }
+
+                    item {
+                        // ponytail: title row with watched checkbox pinned right — always visible
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .aspectRatio(16f / 9f),
-                            contentScale = ContentScale.Crop,
-                        )
-                    }
-                }
-
-                item {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = state.title,
-                            style = MaterialTheme.typography.headlineMedium,
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        val metaParts = mutableListOf<String>()
-                        state.year?.let { metaParts.add(it.toString()) }
-                        if (state.genres.isNotEmpty()) {
-                            metaParts.add(state.genres.take(3).joinToString(", "))
-                        }
-                        state.runtime?.let { mins ->
-                            metaParts.add("${mins}m")
-                        }
-                        if (metaParts.isNotEmpty()) {
+                                .padding(start = 16.dp, end = 8.dp, top = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             Text(
-                                text = metaParts.joinToString(" · "),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                text = state.title,
+                                style = MaterialTheme.typography.headlineMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            WatchedCheckbox(
+                                isWatched = state.isWatched,
+                                rewatchCount = state.rewatchCount,
+                                onCheckWatched = viewModel::onCheckWatched,
+                                onUncheckWatched = viewModel::onUncheckWatched,
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
-                        val rating = state.rating
-                        val votes = state.voteCount
-                        if (rating != null && rating > 0.0) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            val metaParts = mutableListOf<String>()
+                            state.year?.let { metaParts.add(it.toString()) }
+                            if (state.genres.isNotEmpty()) {
+                                metaParts.add(state.genres.take(3).joinToString(", "))
+                            }
+                            state.runtime?.let { mins ->
+                                metaParts.add("${mins}m")
+                            }
+                            if (metaParts.isNotEmpty()) {
                                 Text(
-                                    text = "\u2605 %.1f".format(rating),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    text = metaParts.joinToString(" \u00b7 "),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                if (votes != null && votes > 0) {
-                                    Spacer(modifier = Modifier.width(4.dp))
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            val rating = state.rating
+                            val votes = state.voteCount
+                            if (rating != null && rating > 0.0) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = "(${formatVotes(votes)} votes)",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        text = "\u2605 %.1f".format(rating),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                    if (votes != null && votes > 0) {
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "(${formatVotes(votes)} votes)",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+
+                            state.synopsis?.let { synopsis ->
+                                if (synopsis.isNotBlank()) {
+                                    Text(
+                                        text = synopsis,
+                                        style = MaterialTheme.typography.bodyMedium,
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-
-                        state.synopsis?.let { synopsis ->
-                            if (synopsis.isNotBlank()) {
-                                Text(
-                                    text = synopsis,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            }
                         }
                     }
-                }
 
-                if (state.mediaType == "tv" && state.seasonLabels.isNotEmpty()) {
-                    item {
-                        SeasonSelector(
-                            seasonLabels = state.seasonLabels,
-                            selectedIndex = state.selectedSeasonIndex,
-                            onSeasonSelected = viewModel::onSeasonSelected,
-                        )
-                    }
+                    if (state.mediaType == "tv" && state.seasonLabels.isNotEmpty()) {
+                        item {
+                            SeasonSelector(
+                                seasonLabels = state.seasonLabels,
+                                selectedIndex = state.selectedSeasonIndex,
+                                onSeasonSelected = viewModel::onSeasonSelected,
+                            )
+                        }
 
-                    items(state.episodes, key = { it.id }) { episode ->
-                        EpisodeItem(episode = episode)
+                        items(state.episodes, key = { it.id }) { episode ->
+                            EpisodeItem(episode = episode)
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun WatchedCheckbox(
+    isWatched: Boolean,
+    rewatchCount: Int,
+    onCheckWatched: () -> Unit,
+    onUncheckWatched: (Boolean) -> Unit,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    Box {
+        Checkbox(
+            checked = isWatched,
+            onCheckedChange = { checked ->
+                if (checked) {
+                    onCheckWatched()
+                } else {
+                    showMenu = true
+                }
+            },
+            colors = CheckboxDefaults.colors(
+                checkedColor = MaterialTheme.colorScheme.primary,
+            ),
+        )
+
+        if (isWatched && rewatchCount > 1) {
+            Text(
+                text = "x$rewatchCount",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.TopEnd),
+            )
+        }
+
+        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+            DropdownMenuItem(
+                text = { Text("Not Watched") },
+                onClick = {
+                    onUncheckWatched(false)
+                    showMenu = false
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Rewatched") },
+                onClick = {
+                    onUncheckWatched(true)
+                    showMenu = false
+                },
+            )
+        }
     }
 }
 
@@ -253,7 +345,7 @@ private fun EpisodeItem(episode: com.tally.app.data.remote.model.TmdbEpisode) {
     }
 }
 
-private fun formatVotes(votes: Int): String = when {
+internal fun formatVotes(votes: Int): String = when {
     votes >= 1_000_000 -> "%.1fM".format(votes / 1_000_000.0)
     votes >= 1_000 -> "%.1fk".format(votes / 1_000.0)
     else -> votes.toString()

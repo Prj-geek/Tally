@@ -129,12 +129,6 @@ private fun buildSubtitle(result: TmdbSearchResult): String {
     return parts.joinToString(" \u00b7 ")
 }
 
-private fun formatVotes(votes: Int): String = when {
-    votes >= 1_000_000 -> "%.1fM".format(votes / 1_000_000.0)
-    votes >= 1_000 -> "%.1fk".format(votes / 1_000.0)
-    else -> votes.toString()
-}
-
 @Composable
 private fun SearchResultItem(result: TmdbSearchResult, onClick: () -> Unit) {
     val posterUrl = TmdbImageUrl.poster(result.posterPath)

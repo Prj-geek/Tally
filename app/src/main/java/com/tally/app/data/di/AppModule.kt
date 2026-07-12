@@ -3,7 +3,6 @@ package com.tally.app.data.di
 import android.content.Context
 import com.tally.app.BuildConfig
 import com.tally.app.data.local.TallyDatabase
-import com.tally.app.data.local.dao.MediaDao
 import com.tally.app.data.local.dao.WatchHistoryDao
 import com.tally.app.data.local.dao.WatchlistDao
 import dagger.Module
@@ -37,9 +36,6 @@ object AppModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): TallyDatabase =
         TallyDatabase.create(context)
-
-    @Provides
-    fun provideMediaDao(db: TallyDatabase): MediaDao = db.mediaDao()
 
     @Provides
     fun provideWatchlistDao(db: TallyDatabase): WatchlistDao = db.watchlistDao()
