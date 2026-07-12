@@ -153,11 +153,12 @@ internal fun LibraryRow(item: LibraryItem, onClick: () -> Unit) {
 
         Column(modifier = Modifier.weight(1f)) {
             Text(text = item.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                text = if (item.status == "watched") "Watched" else "Watchlisted",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            val label = when {
+                item.mediaType == "tv" && item.hasWatchedEpisodes -> "Currently Watching"
+                item.status == "watched" -> "Watched"
+                else -> "Watchlisted"
+            }
+            Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
