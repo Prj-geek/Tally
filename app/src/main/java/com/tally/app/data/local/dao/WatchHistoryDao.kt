@@ -20,9 +20,6 @@ interface WatchHistoryDao {
     @Query("SELECT DISTINCT tmdbId FROM watch_history WHERE userId = :userId AND syncStatus != 'PENDING_DELETE'")
     fun getAllWatchedTmdbIds(userId: String): Flow<List<Long>>
 
-    @Query("SELECT SUM(runtime) FROM watch_history WHERE userId = :userId AND syncStatus != 'PENDING_DELETE'")
-    fun getTotalWatchTime(userId: String): Flow<Int?>
-
     @Query("SELECT SUM(runtime) FROM watch_history h INNER JOIN watchlist w ON h.tmdbId = w.tmdbId AND h.userId = w.userId WHERE h.userId = :userId AND w.mediaType = 'movie' AND h.syncStatus != 'PENDING_DELETE'")
     fun getMovieWatchTime(userId: String): Flow<Int?>
 
@@ -52,12 +49,6 @@ interface WatchHistoryDao {
 
     @Query("DELETE FROM watch_history WHERE id = :id")
     suspend fun physicalDelete(id: Long)
-
-    @Query("DELETE FROM watch_history WHERE id = :id")
-    suspend fun delete(id: Long)
-
-    @Query("DELETE FROM watch_history WHERE userId = :userId")
-    suspend fun deleteAllForUser(userId: String)
 
     @Query("UPDATE watch_history SET syncStatus = 'PENDING_DELETE' WHERE userId = :userId AND syncStatus != 'PENDING_DELETE'")
     suspend fun softDeleteAllForUser(userId: String)

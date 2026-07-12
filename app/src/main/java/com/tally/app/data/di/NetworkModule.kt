@@ -19,8 +19,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val SUPABASE_FUNCTIONS_BASE =
-        "https://sokmtzhbnfqmystzbdpd.supabase.co/functions/v1/"
+    private val SUPABASE_FUNCTIONS_BASE =
+        "${BuildConfig.SUPABASE_URL}/functions/v1/"
 
     @Provides
     @Singleton
@@ -32,10 +32,6 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-
         return OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val original = chain.request()
@@ -44,7 +40,13 @@ object NetworkModule {
                     .build()
                 chain.proceed(request)
             }
-            .addInterceptor(logging)
+            .apply {
+                if (BuildConfig.DEBUG) {
+                    addInterceptor(HttpLoggingInterceptor().apply {
+                        level = HttpLoggingInterceptor.Level.BODY
+                    })
+                }
+            }
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()

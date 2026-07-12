@@ -28,3 +28,9 @@
 -keep class * extends androidx.room.RoomDatabase
 -keep @androidx.room.Entity class *
 -dontwarn androidx.room.paging.**
+
+# Supabase + Ktor
+-dontwarn io.github.jan.supabase.**
+-dontwarn io.ktor.**
+-keep class io.github.jan.supabase.** { *; }
+-keep class io.ktor.** { *; }

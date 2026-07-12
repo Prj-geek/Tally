@@ -10,5 +10,4 @@ object TmdbImageUrl {
 
     fun poster(path: String?, size: String = "w500") = url(path, size)
     fun backdrop(path: String?, size: String = "w1280") = url(path, size)
-    fun still(path: String?, size: String = "w300") = url(path, size)
 }
