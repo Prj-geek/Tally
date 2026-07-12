@@ -72,15 +72,18 @@ class ProfileViewModel @Inject constructor(
         val uid = (authState.value as? AuthState.SignedIn)?.userId ?: return
         viewModelScope.launch {
             combine(
-                watchlistDao.getByStatus(uid, "watched"),
+                watchlistDao.getAll(uid),
                 watchHistoryDao.getAllWatchedTmdbIds(uid).map { it.toSet() },
-            ) { watchedEntries, showTmdbIds ->
+            ) { entries, showTmdbIds ->
+                val watched = entries.filter { it.status == "watched" }
                 WatchedState(
-                    watchedMovies = watchedEntries
+                    watchedMovies = watched
                         .filter { it.mediaType == "movie" }
                         .map { WatchedItem(it.tmdbId, "movie", it.title, it.posterPath) },
-                    // ponytail: shows with watched episodes — full "all aired watched" check TBD
-                    watchedShows = emptyList(),
+                    // ponytail: shows with watched episodes — exact 'all aired watched' count TBD
+                    watchedShows = entries
+                        .filter { it.mediaType == "tv" && it.tmdbId in showTmdbIds }
+                        .map { WatchedItem(it.tmdbId, "tv", it.title, it.posterPath) },
                 )
             }.collect { _watchedState.value = it }
         }

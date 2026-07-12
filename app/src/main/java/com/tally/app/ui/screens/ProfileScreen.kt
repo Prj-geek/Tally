@@ -135,9 +135,14 @@ fun ProfileScreen(
                 item {
                     Text("Watched Shows", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 }
-                // ponytail: watched shows TBD — needs "all aired episodes watched" detection
-                item {
-                    Text("Coming soon", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (watchedState.watchedShows.isEmpty()) {
+                    item {
+                        Text("No watched shows", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    items(watchedState.watchedShows, key = { "ws_${it.tmdbId}" }) { item ->
+                        WatchedRow(item, onClick = { onItemClick(item.tmdbId.toInt(), "tv") })
+                    }
                 }
             }
         }
