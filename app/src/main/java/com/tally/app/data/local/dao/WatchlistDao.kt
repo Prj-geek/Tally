@@ -8,6 +8,8 @@ import com.tally.app.data.local.SyncStatus
 import com.tally.app.data.local.entity.WatchlistEntity
 import kotlinx.coroutines.flow.Flow
 
+
+
 @Dao
 interface WatchlistDao {
 
@@ -46,4 +48,10 @@ interface WatchlistDao {
 
     @Query("DELETE FROM watchlist WHERE userId = :userId AND syncStatus = 'SYNCED' AND tmdbId NOT IN (:tmdbIds)")
     suspend fun deleteSyncedNotIn(userId: String, tmdbIds: List<Long>)
+
+    @Query("DELETE FROM watchlist WHERE userId = :userId")
+    suspend fun deleteAllForUser(userId: String)
+
+    @Query("UPDATE watchlist SET syncStatus = 'PENDING_DELETE' WHERE userId = :userId AND syncStatus != 'PENDING_DELETE'")
+    suspend fun softDeleteAllForUser(userId: String)
 }

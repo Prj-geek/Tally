@@ -20,6 +20,7 @@ data class WatchlistEntity(
     val rewatchCount: Int = 0,
     val totalEpisodes: Int = 0,
     val watchedEpisodes: Int = 0,
+    val genres: String = "",
     val visibility: String = "private",
     val addedAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),

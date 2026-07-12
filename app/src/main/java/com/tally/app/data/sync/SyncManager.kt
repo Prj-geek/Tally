@@ -119,8 +119,6 @@ class SyncManager @Inject constructor(
                     filter {
                         eq("user_id", uid)
                         eq("tmdb_id", entry.tmdbId)
-                        if (entry.seasonNum != null) eq("season_num", entry.seasonNum) else filterNot("season_num", io.github.jan.supabase.postgrest.query.filter.FilterOperator.NEQ, "null")
-                        if (entry.episodeNum != null) eq("episode_num", entry.episodeNum) else filterNot("episode_num", io.github.jan.supabase.postgrest.query.filter.FilterOperator.NEQ, "null")
                     }
                 }
                 watchHistoryDao.physicalDelete(entry.id)

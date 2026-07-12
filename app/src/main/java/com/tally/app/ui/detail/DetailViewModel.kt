@@ -259,8 +259,9 @@ class DetailViewModel @Inject constructor(
                 if (existing != null) {
                     watchHistoryDao.upsert(existing.copy(syncStatus = SyncStatus.PENDING_ADD))
                 } else {
+                    val epRuntime = _state.value.episodes.find { it.seasonNumber == seasonNum && it.episodeNumber == episodeNum }?.runtime ?: _state.value.runtime
                     watchHistoryDao.upsert(
-                        WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = seasonNum, episodeNum = episodeNum)
+                        WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = seasonNum, episodeNum = episodeNum, runtime = epRuntime)
                     )
                 }
                 ensureInWatchlist()
@@ -281,8 +282,9 @@ class DetailViewModel @Inject constructor(
             for (ep in from..to) {
                 val existing = watchHistoryDao.get(uid, mediaId.toLong(), seasonNum, ep)
                 if (existing == null || existing.syncStatus == SyncStatus.PENDING_DELETE) {
+                    val epRuntime = _state.value.episodes.find { it.seasonNumber == seasonNum && it.episodeNumber == ep }?.runtime ?: _state.value.runtime
                     watchHistoryDao.upsert(
-                        (existing ?: WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = seasonNum, episodeNum = ep)).copy(syncStatus = SyncStatus.PENDING_ADD)
+                        (existing ?: WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = seasonNum, episodeNum = ep, runtime = epRuntime)).copy(syncStatus = SyncStatus.PENDING_ADD)
                     )
                 }
             }
@@ -304,8 +306,9 @@ class DetailViewModel @Inject constructor(
             for (ep in 1..targetEpisode) {
                 val existing = watchHistoryDao.get(uid, mediaId.toLong(), targetSeason, ep)
                 if (existing == null || existing.syncStatus == SyncStatus.PENDING_DELETE) {
+                    val epRuntime = _state.value.episodes.find { it.seasonNumber == targetSeason && it.episodeNumber == ep }?.runtime ?: _state.value.runtime
                     watchHistoryDao.upsert(
-                        (existing ?: WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = targetSeason, episodeNum = ep)).copy(syncStatus = SyncStatus.PENDING_ADD)
+                        (existing ?: WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = targetSeason, episodeNum = ep, runtime = epRuntime)).copy(syncStatus = SyncStatus.PENDING_ADD)
                     )
                 }
             }
@@ -317,8 +320,9 @@ class DetailViewModel @Inject constructor(
                     for (ep in episodes) {
                         val existing = watchHistoryDao.get(uid, mediaId.toLong(), season, ep.episodeNumber)
                         if (existing == null || existing.syncStatus == SyncStatus.PENDING_DELETE) {
+                            val epRuntime = ep.runtime ?: _state.value.runtime
                             watchHistoryDao.upsert(
-                                (existing ?: WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = season, episodeNum = ep.episodeNumber)).copy(syncStatus = SyncStatus.PENDING_ADD)
+                                (existing ?: WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = season, episodeNum = ep.episodeNumber, runtime = epRuntime)).copy(syncStatus = SyncStatus.PENDING_ADD)
                             )
                         }
                     }
@@ -354,6 +358,7 @@ class DetailViewModel @Inject constructor(
                     posterPath = _state.value.posterUrl,
                     status = STATUS_WATCHLIST,
                     totalEpisodes = if (mediaType == "tv") (_state.value.numEpisodes ?: 0) else 0,
+                    genres = _state.value.genres.joinToString(","),
                 )
             )
             _state.value = _state.value.copy(isWatchlisted = true)
@@ -402,8 +407,9 @@ class DetailViewModel @Inject constructor(
                 for (ep in 1..episodeCount) {
                     val existing = watchHistoryDao.get(uid, mediaId.toLong(), seasonNum, ep)
                     if (existing == null || existing.syncStatus == SyncStatus.PENDING_DELETE) {
+                        val epRuntime = _state.value.episodes.find { it.seasonNumber == seasonNum && it.episodeNumber == ep }?.runtime ?: _state.value.runtime
                         watchHistoryDao.upsert(
-                            (existing ?: WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = seasonNum, episodeNum = ep)).copy(syncStatus = SyncStatus.PENDING_ADD)
+                            (existing ?: WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = seasonNum, episodeNum = ep, runtime = epRuntime)).copy(syncStatus = SyncStatus.PENDING_ADD)
                         )
                     }
                 }
@@ -472,15 +478,16 @@ class DetailViewModel @Inject constructor(
                         mediaType = mediaType, title = _state.value.title,
                         posterPath = _state.value.posterUrl,
                         status = STATUS_WATCHED,
+                        genres = _state.value.genres.joinToString(","),
                     )
                 )
             }
             // ponytail: movie watch history — upsert via get first, SQLite nulls bypass unique index
             val existingHistory = watchHistoryDao.get(uid, mediaId.toLong(), null, null)
             if (existingHistory == null) {
-                watchHistoryDao.upsert(WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong()))
+                watchHistoryDao.upsert(WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), runtime = _state.value.runtime))
             } else if (existingHistory.syncStatus == SyncStatus.PENDING_DELETE) {
-                watchHistoryDao.upsert(existingHistory.copy(syncStatus = SyncStatus.PENDING_ADD, watchedAt = System.currentTimeMillis()))
+                watchHistoryDao.upsert(existingHistory.copy(syncStatus = SyncStatus.PENDING_ADD, watchedAt = System.currentTimeMillis(), runtime = _state.value.runtime))
             }
             _state.value = _state.value.copy(isWatchlisted = false, isWatched = true, rewatchCount = 0)
             syncManager.sync()
@@ -501,7 +508,7 @@ class DetailViewModel @Inject constructor(
                     syncStatus = if (current.syncStatus == SyncStatus.SYNCED) SyncStatus.PENDING_UPDATE else current.syncStatus,
                 ))
                 // ponytail: rewatch history for stats — single entry, multi-rewatch tracking later
-                watchHistoryDao.upsert(WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), rewatch = true))
+                watchHistoryDao.upsert(WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), rewatch = true, runtime = _state.value.runtime))
                 _state.value = _state.value.copy(rewatchCount = newCount)
             } else {
                 // Not Watched — mark for delete

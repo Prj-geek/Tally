@@ -13,7 +13,7 @@ import com.tally.app.data.local.entity.WatchlistEntity
 
 @Database(
     entities = [WatchlistEntity::class, WatchHistoryEntity::class],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class TallyDatabase : RoomDatabase() {
@@ -42,10 +42,17 @@ abstract class TallyDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE watchlist ADD COLUMN genres TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE watch_history ADD COLUMN runtime INTEGER DEFAULT NULL")
+            }
+        }
+
         fun create(context: Context): TallyDatabase =
             Room.databaseBuilder(context, TallyDatabase::class.java, "tally.db")
                 .fallbackToDestructiveMigration(false)
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
     }
 }

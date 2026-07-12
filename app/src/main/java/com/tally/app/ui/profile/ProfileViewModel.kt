@@ -3,7 +3,9 @@ package com.tally.app.ui.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tally.app.data.auth.AuthRepository
+import com.tally.app.data.local.dao.WatchHistoryDao
 import com.tally.app.data.local.dao.WatchlistDao
+import com.tally.app.data.sync.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -31,12 +34,18 @@ data class WatchedItem(
 data class WatchedState(
     val watchedMovies: List<WatchedItem> = emptyList(),
     val watchedShows: List<WatchedItem> = emptyList(),
+    val movieWatchTimeMinutes: Int = 0,
+    val tvWatchTimeMinutes: Int = 0,
+    val watchedMovieCount: Int = 0,
+    val watchedTvCount: Int = 0,
 )
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val watchlistDao: WatchlistDao,
+    private val watchHistoryDao: WatchHistoryDao,
+    private val syncManager: SyncManager,
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
@@ -67,16 +76,26 @@ class ProfileViewModel @Inject constructor(
     fun loadWatched() {
         val uid = (authState.value as? AuthState.SignedIn)?.userId ?: return
         viewModelScope.launch {
-            watchlistDao.getAll(uid).collect { entries ->
-                _watchedState.value = WatchedState(
+            combine(
+                watchlistDao.getAll(uid),
+                watchHistoryDao.getMovieWatchTime(uid),
+                watchHistoryDao.getTvWatchTime(uid),
+                watchHistoryDao.getWatchedMovieCount(uid),
+                watchHistoryDao.getWatchedTvCount(uid),
+            ) { entries, movieTime, tvTime, movieCount, tvCount ->
+                WatchedState(
                     watchedMovies = entries
                         .filter { it.mediaType == "movie" && it.status == "watched" }
                         .map { WatchedItem(it.tmdbId, "movie", it.title, it.posterPath) },
                     watchedShows = entries
                         .filter { it.mediaType == "tv" && it.watchedEpisodes >= it.totalEpisodes && it.totalEpisodes > 0 }
                         .map { WatchedItem(it.tmdbId, "tv", it.title, it.posterPath) },
+                    movieWatchTimeMinutes = movieTime ?: 0,
+                    tvWatchTimeMinutes = tvTime ?: 0,
+                    watchedMovieCount = movieCount,
+                    watchedTvCount = tvCount,
                 )
-            }
+            }.collect { _watchedState.value = it }
         }
     }
 
@@ -94,6 +113,16 @@ class ProfileViewModel @Inject constructor(
     fun signOut() {
         viewModelScope.launch {
             authRepository.signOut()
+        }
+    }
+
+    fun clearData() {
+        val uid = (authState.value as? AuthState.SignedIn)?.userId ?: return
+        viewModelScope.launch {
+            watchlistDao.softDeleteAllForUser(uid)
+            watchHistoryDao.softDeleteAllForUser(uid)
+            syncManager.sync()
+            loadWatched()
         }
     }
 }

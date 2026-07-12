@@ -21,4 +21,5 @@ data class TmdbEpisode(
     @SerialName("still_path") val stillPath: String? = null,
     @SerialName("air_date") val airDate: String? = null,
     @SerialName("vote_average") val voteAverage: Double? = null,
+    val runtime: Int? = null,
 )

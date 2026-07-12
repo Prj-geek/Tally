@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -24,7 +25,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -52,6 +56,7 @@ fun ProfileScreen(
     val watchedState by viewModel.watchedState.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var showClearDataDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.error.collect { message ->
@@ -79,6 +84,23 @@ fun ProfileScreen(
                 Toast.makeText(context, "Google Sign-In failed", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    if (showClearDataDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDataDialog = false },
+            title = { Text("Clear Data") },
+            text = { Text("This will permanently delete all your watch history and watchlist data. This cannot be undone.") },
+            confirmButton = {
+                OutlinedButton(onClick = {
+                    showClearDataDialog = false
+                    viewModel.clearData()
+                }) { Text("Clear") }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showClearDataDialog = false }) { Text("Cancel") }
+            },
+        )
     }
 
     when (val state = authState) {
@@ -111,8 +133,27 @@ fun ProfileScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Signed in", style = MaterialTheme.typography.titleMedium)
-                        OutlinedButton(onClick = { viewModel.signOut() }) { Text("Sign Out") }
+                        Column {
+                            Text("Signed in", style = MaterialTheme.typography.titleMedium)
+                            Text(style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, text = buildString {
+                                if (watchedState.watchedMovieCount > 0 || watchedState.watchedTvCount > 0) {
+                                    append("Movies watched: ${watchedState.watchedMovieCount} | Shows watched: ${watchedState.watchedTvCount}")
+                                    append("\n")
+                                }
+                                if (watchedState.movieWatchTimeMinutes > 0) {
+                                    append("Movie runtime: ${watchedState.movieWatchTimeMinutes / 60}h ${watchedState.movieWatchTimeMinutes % 60}m")
+                                    append(" | ")
+                                }
+                                if (watchedState.tvWatchTimeMinutes > 0) {
+                                    append("TV runtime: ${watchedState.tvWatchTimeMinutes / 60}h ${watchedState.tvWatchTimeMinutes % 60}m")
+                                }
+                            })
+                        }
+                        Row {
+                            OutlinedButton(onClick = { showClearDataDialog = true }) { Text("Clear Data") }
+                            Spacer(Modifier.width(8.dp))
+                            OutlinedButton(onClick = { viewModel.signOut() }) { Text("Sign Out") }
+                        }
                     }
                     Spacer(Modifier.height(16.dp))
                 }

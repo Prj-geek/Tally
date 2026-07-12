@@ -15,6 +15,7 @@ data class WatchHistoryEntity(
     val tmdbId: Long,
     val seasonNum: Int? = null,
     val episodeNum: Int? = null,
+    val runtime: Int? = null,
     val watchedAt: Long = System.currentTimeMillis(),
     val rewatch: Boolean = false,
     val syncStatus: SyncStatus = SyncStatus.PENDING_ADD,
