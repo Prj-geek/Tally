@@ -8,19 +8,28 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.tally.app.ui.screens.DetailScreen
-import com.tally.app.ui.screens.LibraryScreen
+import com.tally.app.ui.screens.MoviesScreen
 import com.tally.app.ui.screens.ProfileScreen
 import com.tally.app.ui.screens.SearchScreen
+import com.tally.app.ui.screens.ShowsScreen
 
 @Composable
 fun TallyNavHost(navController: NavHostController, modifier: Modifier = Modifier) {
     NavHost(
         navController = navController,
-        startDestination = Routes.LIBRARY,
+        startDestination = Routes.SHOWS,
         modifier = modifier,
     ) {
-        composable(Routes.LIBRARY) {
-            LibraryScreen(
+        composable(Routes.SHOWS) {
+            ShowsScreen(
+                onItemClick = { id, mediaType ->
+                    navController.navigate(Routes.detail(mediaType, id))
+                },
+            )
+        }
+
+        composable(Routes.MOVIES) {
+            MoviesScreen(
                 onItemClick = { id, mediaType ->
                     navController.navigate(Routes.detail(mediaType, id))
                 },

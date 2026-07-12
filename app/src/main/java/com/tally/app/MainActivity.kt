@@ -6,9 +6,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.LibraryBooks
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -27,7 +28,6 @@ import com.tally.app.navigation.TallyNavHost
 import com.tally.app.ui.theme.TallyTheme
 import dagger.hilt.android.AndroidEntryPoint
 
-// Bottom navigation items: label, icon, and route for each tab
 data class BottomNavItem(
     val label: String,
     val icon: ImageVector,
@@ -35,9 +35,10 @@ data class BottomNavItem(
 )
 
 private val bottomNavItems = listOf(
-    BottomNavItem("Library", Icons.AutoMirrored.Filled.LibraryBooks, Routes.LIBRARY),
+    BottomNavItem("Shows", Icons.Default.Tv, Routes.SHOWS),
+    BottomNavItem("Movies", Icons.Default.Movie, Routes.MOVIES),
     BottomNavItem("Search", Icons.Default.Search, Routes.SEARCH),
-    BottomNavItem("Profile", Icons.Default.Person, Routes.PROFILE)
+    BottomNavItem("Profile", Icons.Default.Person, Routes.PROFILE),
 )
 
 @AndroidEntryPoint
