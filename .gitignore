@@ -3,6 +3,7 @@ docs/
 
 # Secrets
 *client_secret*.json
+*.jks
 
 # Gradle
 .gradle/
@@ -20,3 +21,4 @@ local.properties
 
 # OS
 .DS_Store
+.opencode/

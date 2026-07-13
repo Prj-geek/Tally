@@ -6,6 +6,7 @@ object Routes {
     const val SEARCH = "search"
     const val PROFILE = "profile"
     const val DETAIL = "detail/{mediaType}/{id}"
+    const val TV_TIME_IMPORT = "tv-time-import"
 
     fun detail(mediaType: String, id: Int) = "detail/$mediaType/$id"
 }

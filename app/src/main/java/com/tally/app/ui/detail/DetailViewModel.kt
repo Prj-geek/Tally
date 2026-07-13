@@ -220,6 +220,13 @@ class DetailViewModel @Inject constructor(
                         watchlistDao.upsert(updated)
                     }
                 }
+                if (entry.posterPath == null && _state.value.posterUrl != null) {
+                    updated = entry.copy(
+                        posterPath = _state.value.posterUrl,
+                        syncStatus = if (entry.syncStatus == SyncStatus.SYNCED) SyncStatus.PENDING_UPDATE else entry.syncStatus,
+                    )
+                    watchlistDao.upsert(updated)
+                }
                 _state.value = _state.value.copy(
                     isWatchlisted = entry.status == STATUS_WATCHLIST,
                     isWatched = entry.status == STATUS_WATCHED,

@@ -8,6 +8,7 @@ import com.tally.app.data.local.dao.WatchlistDao
 import com.tally.app.data.sync.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.auth.status.SessionStatus
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -45,11 +46,14 @@ class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val watchlistDao: WatchlistDao,
     private val watchHistoryDao: WatchHistoryDao,
-    private val syncManager: SyncManager,
+    val syncManager: SyncManager,
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
+    private val _avatarUrl = MutableStateFlow<String?>(null)
+    val avatarUrl: StateFlow<String?> = _avatarUrl.asStateFlow()
 
     private val _error = MutableSharedFlow<String>()
     val error: SharedFlow<String> = _error.asSharedFlow()
@@ -62,10 +66,16 @@ class ProfileViewModel @Inject constructor(
             authRepository.sessionStatus.collect { status ->
                 _authState.value = when (status) {
                     is SessionStatus.Initializing -> AuthState.Loading
-                    is SessionStatus.NotAuthenticated -> AuthState.SignedOut
-                    is SessionStatus.Authenticated -> AuthState.SignedIn(
-                        userId = status.session.user?.id ?: return@collect
-                    )
+                    is SessionStatus.NotAuthenticated -> {
+                        _avatarUrl.value = null
+                        AuthState.SignedOut
+                    }
+                    is SessionStatus.Authenticated -> {
+                        _avatarUrl.value = (status.session.user?.userMetadata?.get("avatar_url") as? JsonPrimitive)?.content
+                        AuthState.SignedIn(
+                            userId = status.session.user?.id ?: return@collect
+                        )
+                    }
                     is SessionStatus.RefreshFailure -> AuthState.SignedOut
                 }
             }
@@ -75,6 +85,7 @@ class ProfileViewModel @Inject constructor(
     // ponytail: load watched data when user signs in
     fun loadWatched() {
         val uid = (authState.value as? AuthState.SignedIn)?.userId ?: return
+        syncManager.sync()
         viewModelScope.launch {
             combine(
                 watchlistDao.getAll(uid),

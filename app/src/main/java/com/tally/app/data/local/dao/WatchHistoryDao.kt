@@ -38,6 +38,9 @@ interface WatchHistoryDao {
     @Query("SELECT * FROM watch_history WHERE userId = :userId AND syncStatus IN ('PENDING_ADD', 'PENDING_UPDATE')")
     suspend fun getPendingSync(userId: String): List<WatchHistoryEntity>
 
+    @Query("SELECT COUNT(*) FROM watch_history WHERE userId = :userId AND syncStatus IN ('PENDING_ADD', 'PENDING_UPDATE')")
+    suspend fun countPendingSync(userId: String): Int
+
     @Query("SELECT * FROM watch_history WHERE userId = :userId AND syncStatus = 'PENDING_DELETE'")
     suspend fun getPendingDeletes(userId: String): List<WatchHistoryEntity>
 

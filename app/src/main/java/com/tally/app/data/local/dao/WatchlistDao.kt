@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface WatchlistDao {
 
-    @Query("SELECT * FROM watchlist WHERE userId = :userId AND tmdbId = :tmdbId")
+    @Query("SELECT * FROM watchlist WHERE userId = :userId AND tmdbId = :tmdbId AND syncStatus != 'PENDING_DELETE'")
     suspend fun get(userId: String, tmdbId: Long): WatchlistEntity?
 
     @Query("SELECT * FROM watchlist WHERE userId = :userId AND syncStatus != 'PENDING_DELETE' ORDER BY updatedAt DESC")
@@ -21,6 +21,9 @@ interface WatchlistDao {
 
     @Query("SELECT * FROM watchlist WHERE userId = :userId AND syncStatus IN ('PENDING_ADD', 'PENDING_UPDATE')")
     suspend fun getPendingSync(userId: String): List<WatchlistEntity>
+
+    @Query("SELECT COUNT(*) FROM watchlist WHERE userId = :userId AND syncStatus IN ('PENDING_ADD', 'PENDING_UPDATE')")
+    suspend fun countPendingSync(userId: String): Int
 
     @Query("SELECT * FROM watchlist WHERE userId = :userId AND syncStatus = 'PENDING_DELETE'")
     suspend fun getPendingDeletes(userId: String): List<WatchlistEntity>

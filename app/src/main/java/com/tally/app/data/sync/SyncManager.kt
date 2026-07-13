@@ -29,6 +29,10 @@ class SyncManager @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+    private val _pendingCount = MutableStateFlow(0)
+    val pendingCount: StateFlow<Int> = _pendingCount.asStateFlow()
+    private val _lastSyncError = MutableStateFlow<String?>(null)
+    val lastSyncError: StateFlow<String?> = _lastSyncError.asStateFlow()
     private var pendingSync = false
 
     fun sync() {
@@ -44,20 +48,30 @@ class SyncManager @Inject constructor(
         Log.d(TAG, "sync: starting for user $uid")
         scope.launch {
             _isSyncing.value = true
+            _lastSyncError.value = null
             try {
                 pushPendingChanges(uid)
                 pullRemoteChanges(uid)
                 Log.d(TAG, "sync: completed")
             } catch (e: Exception) {
                 Log.e(TAG, "sync failed", e)
+                _lastSyncError.value = e.message ?: "Sync failed"
             } finally {
                 _isSyncing.value = false
+                updatePendingCount(uid)
                 if (pendingSync) {
                     pendingSync = false
                     sync()
                 }
             }
         }
+    }
+
+    suspend fun getPendingCount(uid: String): Int =
+        watchlistDao.countPendingSync(uid) + watchHistoryDao.countPendingSync(uid)
+
+    private suspend fun updatePendingCount(uid: String) {
+        _pendingCount.value = watchlistDao.countPendingSync(uid) + watchHistoryDao.countPendingSync(uid)
     }
 
     private suspend fun pushPendingChanges(uid: String) {
@@ -76,6 +90,7 @@ class SyncManager @Inject constructor(
                 Log.d(TAG, "push: watchlist tmdbId=${current.tmdbId} synced")
             } catch (e: Exception) {
                 Log.e(TAG, "push: watchlist upsert failed for tmdbId=${entry.tmdbId}", e)
+                _lastSyncError.value = e.message ?: "Watchlist sync failed"
             }
         }
 
@@ -87,12 +102,15 @@ class SyncManager @Inject constructor(
                 if (current.syncStatus != SyncStatus.PENDING_ADD && current.syncStatus != SyncStatus.PENDING_UPDATE) continue
                 
                 val result = supabase.from("watch_history").upsert(current.toSupabase()) {
+                    onConflict = "user_id,tmdb_id,season_num,episode_num"
                     select()
                 }.decodeSingle<SupabaseWatchHistoryEntry>()
-                
+
                 watchHistoryDao.upsert(current.copy(syncStatus = SyncStatus.SYNCED, remoteId = result.id))
+                Log.d(TAG, "push: history tmdbId=${current.tmdbId} season=${current.seasonNum} episode=${current.episodeNum} synced")
             } catch (e: Exception) {
                 Log.e(TAG, "push: history upsert failed", e)
+                _lastSyncError.value = e.message ?: "History sync failed"
             }
         }
 
@@ -109,21 +127,26 @@ class SyncManager @Inject constructor(
                 watchlistDao.physicalDelete(entry.id)
             } catch (e: Exception) {
                 Log.e(TAG, "push: watchlist delete failed", e)
+                _lastSyncError.value = e.message ?: "Watchlist delete failed"
             }
         }
 
         val pendingHistoryDeletes = watchHistoryDao.getPendingDeletes(uid)
         for (entry in pendingHistoryDeletes) {
             try {
+                val remoteEntry = entry.toSupabase()
                 supabase.from("watch_history").delete {
                     filter {
                         eq("user_id", uid)
                         eq("tmdb_id", entry.tmdbId)
+                        eq("season_num", remoteEntry.seasonNum ?: 0)
+                        eq("episode_num", remoteEntry.episodeNum ?: 0)
                     }
                 }
                 watchHistoryDao.physicalDelete(entry.id)
             } catch (e: Exception) {
                 Log.e(TAG, "push: history delete failed", e)
+                _lastSyncError.value = e.message ?: "History delete failed"
             }
         }
     }
@@ -176,9 +199,10 @@ class SyncManager @Inject constructor(
         Log.d(TAG, "pull: ${remoteHistory.size} remote history entries")
 
         for (remote in remoteHistory) {
-            val local = watchHistoryDao.get(uid, remote.tmdbId, remote.seasonNum, remote.episodeNum)
+            val normalizedRemote = remote.toLocalEntity()
+            val local = watchHistoryDao.get(uid, normalizedRemote.tmdbId, normalizedRemote.seasonNum, normalizedRemote.episodeNum)
             if (local == null) {
-                watchHistoryDao.upsert(remote.toLocalEntity())
+                watchHistoryDao.upsert(normalizedRemote)
             }
         }
     }

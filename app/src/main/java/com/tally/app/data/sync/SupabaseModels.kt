@@ -1,10 +1,13 @@
 package com.tally.app.data.sync
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import com.tally.app.data.local.entity.WatchlistEntity
 import com.tally.app.data.local.entity.WatchHistoryEntity
 import com.tally.app.data.local.SyncStatus
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+private const val REMOTE_MOVIE_HISTORY_SEASON = 0
+private const val REMOTE_MOVIE_HISTORY_EPISODE = 0
 
 @Serializable
 data class SupabaseWatchlistEntry(
@@ -57,8 +60,9 @@ fun WatchHistoryEntity.toSupabase() = SupabaseWatchHistoryEntry(
     id = remoteId,
     userId = userId,
     tmdbId = tmdbId,
-    seasonNum = seasonNum,
-    episodeNum = episodeNum,
+    // Remote conflict keys cannot rely on NULL equality for movie history.
+    seasonNum = seasonNum ?: REMOTE_MOVIE_HISTORY_SEASON,
+    episodeNum = episodeNum ?: REMOTE_MOVIE_HISTORY_EPISODE,
     runtime = runtime,
     watchedAt = watchedAt,
     rewatch = rewatch,
@@ -87,8 +91,8 @@ fun SupabaseWatchHistoryEntry.toLocalEntity() = WatchHistoryEntity(
     id = 0,
     userId = userId,
     tmdbId = tmdbId,
-    seasonNum = seasonNum,
-    episodeNum = episodeNum,
+    seasonNum = if (seasonNum == REMOTE_MOVIE_HISTORY_SEASON && episodeNum == REMOTE_MOVIE_HISTORY_EPISODE) null else seasonNum,
+    episodeNum = if (seasonNum == REMOTE_MOVIE_HISTORY_SEASON && episodeNum == REMOTE_MOVIE_HISTORY_EPISODE) null else episodeNum,
     runtime = runtime,
     watchedAt = watchedAt,
     rewatch = rewatch,

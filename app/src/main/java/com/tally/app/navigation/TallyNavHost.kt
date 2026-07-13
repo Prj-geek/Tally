@@ -7,6 +7,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.tally.app.ui.importer.TvTimeImportScreen
 import com.tally.app.ui.screens.DetailScreen
 import com.tally.app.ui.screens.MoviesScreen
 import com.tally.app.ui.screens.ProfileScreen
@@ -49,7 +50,12 @@ fun TallyNavHost(navController: NavHostController, modifier: Modifier = Modifier
                 onItemClick = { id, mediaType ->
                     navController.navigate(Routes.detail(mediaType, id))
                 },
+                onImportTvTime = { navController.navigate(Routes.TV_TIME_IMPORT) },
             )
+        }
+
+        composable(Routes.TV_TIME_IMPORT) {
+            TvTimeImportScreen(onBack = { navController.popBackStack() })
         }
 
         composable(

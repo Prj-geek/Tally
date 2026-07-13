@@ -23,11 +23,17 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.tally.app.data.auth.AuthRepository
 import com.tally.app.data.sync.SyncManager
 import com.tally.app.navigation.Routes
 import com.tally.app.navigation.TallyNavHost
 import com.tally.app.ui.theme.TallyTheme
 import dagger.hilt.android.AndroidEntryPoint
+import io.github.jan.supabase.auth.status.SessionStatus
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class BottomNavItem(
@@ -46,14 +52,26 @@ private val bottomNavItems = listOf(
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject lateinit var syncManager: SyncManager
+    @Inject lateinit var authRepository: AuthRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        syncManager.sync()
+        observeSessionAndSync()
         enableEdgeToEdge()
         setContent {
             TallyTheme {
                 TallyMainScreen()
+            }
+        }
+    }
+
+    private fun observeSessionAndSync() {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+        scope.launch {
+            authRepository.sessionStatus.collect { status ->
+                if (status is SessionStatus.Authenticated) {
+                    syncManager.sync()
+                }
             }
         }
     }
