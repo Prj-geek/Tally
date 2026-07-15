@@ -2,7 +2,7 @@
 
 A personal TV and movie tracking app for Android. Search for shows and movies, build watchlists, mark episodes as watched, and track your total watch time — all with offline-first local storage and optional cloud sync via Supabase.
 
-**Phase 1 (v0.1.0):** Personal tracking only. Social features (friends, comments, activity feed) are planned for Phase 2.
+**v1.0.0:** Personal tracking only. Social features (friends, comments, activity feed) are planned for Phase 2.
 
 ## Features
 
@@ -13,9 +13,9 @@ A personal TV and movie tracking app for Android. Search for shows and movies, b
 - **Auto-transition** — Shows move from "Currently Watching" to "Watched" when all episodes are checked
 - **Library** — Split into Shows and Movies tabs with "Currently Watching" / "Watchlisted" sub-sections
 - **Runtime stats** — Total watch time computed from tracked episodes and movies, displayed on profile
-- **Profile** — Avatar from Supabase session, watched shows/movies horizontal rows, sync status chip (Syncing/N pending/Synced/Sync failed)
-- **Cloud sync** — Offline-first bidirectional sync with Supabase (pending changes push when online)
-- **TV Time import** — Import watch history and watchlisted shows/movies from a TV Time GDPR export CSV
+- **Profile** — Avatar from Supabase session, TopAppBar, ModalBottomSheet menu (Scan Episode Groups, Clear Data, Sign Out), watched shows/movies horizontal rows, sync status chip (Syncing/N pending/Synced/Sync failed)
+- **Cloud sync** — Offline-first bidirectional sync with Supabase (pending changes push when online). Clear Data deletes from Supabase.
+- **Episode group scanning** — Scan imported TV history for anime season collapse mismatches, propose overrides for manual verification
 - **Anime support** — Episode group override system for multi-cour anime with manually-verified season splits
 
 ## Tech Stack
@@ -38,7 +38,7 @@ A personal TV and movie tracking app for Android. Search for shows and movies, b
 
 1. **Clone the repo**
    ```
-   git clone https://github.com/your-username/Tally.git
+   git clone https://github.com/Prj-geek/Tally.git
    ```
 
 2. **Create `local.properties`** in the project root with:
@@ -72,5 +72,3 @@ This product uses the TMDb API but is not endorsed or certified by TMDb.
 3. **"Currently Watching" edge cases** — Auto-transition between "Currently Watching" and "Watched" is based on episode counts. Edge cases remain: a show that was fully watched getting a new season, or weekly episodes that should trigger "Currently Watching" when new episodes air. These will be addressed in Phase 3.
 
 4. **Upcoming section is placeholder** — The "Upcoming" tabs in the library require release date tracking, planned for Phase 3.
-
-5. **TV Time import** — Only supports the single combined GDPR CSV export. Individual episode-level CSV files are not supported.

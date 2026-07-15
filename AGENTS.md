@@ -28,10 +28,11 @@ After every task, I will provide:
 - Bottom nav: Shows, Movies, Search, Profile
 - Shows/Movies tabs: Watchlist/Upcoming sub-tabs
 - Shows Watchlist split into "Currently Watching" / "Watchlisted"
-- DB v5: watchlist has totalEpisodes, watchedEpisodes for episode tracking
+- DB v6: watchlist has totalEpisodes, watchedEpisodes, genres; watch_history has runtime
 - TV episode checking auto-adds to watchlist via ensureInWatchlist()
 - syncWatchedEpisodesCount() auto-transitions status when all episodes watched
-- TV Time CSV import: watchlisted shows/movies + watch history via Profile menu
+- Movie history uses null season/episode for dedupe (SQLite NULL != NULL in unique index)
+- Clear data: soft-delete → syncAndWait → physical delete (deletes from Supabase)
 - Sync chip on Profile: shows Syncing / N pending / Synced / Sync failed
-- Movie history uses sentinel keys (season=0, episode=0) for Supabase dedupe
 - Profile: avatar from Supabase session, TopAppBar, ModalBottomSheet menu
+- Episode group scanning: scanImportedEpisodeGroups() proposes overrides for anime season collapse
