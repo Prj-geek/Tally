@@ -63,12 +63,14 @@ import com.tally.app.ui.profile.ProfileViewModel
 import kotlinx.coroutines.launch
 
 private const val MAX_PREVIEW_ITEMS = 10
+private const val MINUTES_PER_HOUR = 60
+private const val HOURS_PER_DAY = 24
+private const val DAYS_PER_MONTH = 30
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onItemClick: (tmdbId: Int, mediaType: String) -> Unit = { _, _ -> },
-    onImportTvTime: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val authState by viewModel.authState.collectAsState()
@@ -77,6 +79,7 @@ fun ProfileScreen(
     val isSyncing by viewModel.syncManager.isSyncing.collectAsState()
     val pendingCount by viewModel.syncManager.pendingCount.collectAsState()
     val lastSyncError by viewModel.syncManager.lastSyncError.collectAsState()
+    val isScanningEpisodeGroups by viewModel.isScanningEpisodeGroups.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var showClearDataDialog by remember { mutableStateOf(false) }
@@ -139,9 +142,12 @@ fun ProfileScreen(
             Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
                 Text("Settings", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(16.dp))
-                TextButtonItem("Import from TV Time") {
+                TextButtonItem(
+                    text = if (isScanningEpisodeGroups) "Scanning Episode Groups..." else "Scan Episode Groups",
+                    enabled = !isScanningEpisodeGroups,
+                ) {
                     showMenu = false
-                    onImportTvTime()
+                    viewModel.scanImportedEpisodeGroups()
                 }
                 Spacer(Modifier.height(8.dp))
                 TextButtonItem("Clear Data") {
@@ -219,10 +225,9 @@ fun ProfileScreen(
 
                     // Stats
                     item {
-                        fun minStr(m: Int) = if (m > 0) "${m / 60}h ${m % 60}m" else "—"
                         Text(
                             text = buildString {
-                                append("Movie time: ${minStr(watchedState.movieWatchTimeMinutes)}  ·  TV time: ${minStr(watchedState.tvWatchTimeMinutes)}")
+                                append("Movie time: ${formatWatchTime(watchedState.movieWatchTimeMinutes)}  ·  TV time: ${formatWatchTime(watchedState.tvWatchTimeMinutes)}")
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -307,6 +312,28 @@ fun ProfileScreen(
             }
         }
     }
+}
+
+private fun formatWatchTime(totalMinutes: Int): String {
+    if (totalMinutes <= 0) return "—"
+
+    val minutesPerDay = MINUTES_PER_HOUR * HOURS_PER_DAY
+    val minutesPerMonth = minutesPerDay * DAYS_PER_MONTH
+    var remaining = totalMinutes
+
+    val months = remaining / minutesPerMonth
+    remaining %= minutesPerMonth
+    val days = remaining / minutesPerDay
+    remaining %= minutesPerDay
+    val hours = remaining / MINUTES_PER_HOUR
+    val minutes = remaining % MINUTES_PER_HOUR
+
+    return buildList {
+        if (months > 0) add("${months}mo")
+        if (days > 0) add("${days}d")
+        if (hours > 0) add("${hours}h")
+        if (minutes > 0) add("${minutes}m")
+    }.joinToString(" ")
 }
 
 @Composable
@@ -397,9 +424,14 @@ private fun WatchedPoster(item: com.tally.app.ui.profile.WatchedItem, onClick: (
 }
 
 @Composable
-private fun TextButtonItem(text: String, onClick: () -> Unit) {
+private fun TextButtonItem(
+    text: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
     OutlinedButton(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
     ) { Text(text) }
 }

@@ -15,7 +15,6 @@ import com.tally.app.data.remote.TmdbImageUrl
 import com.tally.app.data.remote.TmdbRepository
 import com.tally.app.data.remote.model.TmdbEpisode
 import com.tally.app.data.remote.model.TmdbEpisodeGroupGroup
-import com.tally.app.data.remote.toTmdbEpisode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -91,7 +90,7 @@ class DetailViewModel @Inject constructor(
         if (_state.value.usingEpisodeGroup) {
             val group = cachedEpisodeGroups?.getOrNull(index) ?: return
             _state.value = _state.value.copy(
-                episodes = group.episodes.map { it.toTmdbEpisode() },
+                episodes = group.toAppEpisodes(seasonNumber = index + 1),
             )
         } else {
             val seasonNum = cachedSeasonNumbers.getOrNull(index) ?: return
@@ -151,7 +150,7 @@ class DetailViewModel @Inject constructor(
                                 numEpisodes = showSeasonInfo.sumOf { it.episodes.size },
                                 seasonLabels = showSeasonInfo.map { it.name },
                                 selectedSeasonIndex = 0,
-                                episodes = firstGroup.episodes.map { it.toTmdbEpisode() },
+                                episodes = firstGroup.toAppEpisodes(seasonNumber = 1),
                                 usingEpisodeGroup = true,
                             )
                         } else {
@@ -319,21 +318,36 @@ class DetailViewModel @Inject constructor(
                     )
                 }
             }
-            // Previous seasons: get season numbers, load episodes from API, watch all
-            val previousSeasons = allSeasonNumbers().filter { it < targetSeason }
-            for (season in previousSeasons) {
-                try {
-                    val episodes = repository.getSeasonEpisodes(mediaId, season)
-                    for (ep in episodes) {
-                        val existing = watchHistoryDao.get(uid, mediaId.toLong(), season, ep.episodeNumber)
-                        if (existing == null || existing.syncStatus == SyncStatus.PENDING_DELETE) {
-                            val epRuntime = ep.runtime ?: _state.value.runtime
-                            watchHistoryDao.upsert(
-                                (existing ?: WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = season, episodeNum = ep.episodeNumber, runtime = epRuntime)).copy(syncStatus = SyncStatus.PENDING_ADD)
-                            )
+            if (_state.value.usingEpisodeGroup) {
+                cachedEpisodeGroups
+                    ?.take(targetSeason - 1)
+                    ?.forEachIndexed { index, group ->
+                        val season = index + 1
+                        for (ep in group.toAppEpisodes(seasonNumber = season)) {
+                            val existing = watchHistoryDao.get(uid, mediaId.toLong(), season, ep.episodeNumber)
+                            if (existing == null || existing.syncStatus == SyncStatus.PENDING_DELETE) {
+                                watchHistoryDao.upsert(
+                                    (existing ?: WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = season, episodeNum = ep.episodeNumber, runtime = ep.runtime)).copy(syncStatus = SyncStatus.PENDING_ADD)
+                                )
+                            }
                         }
                     }
-                } catch (_: Exception) { }
+            } else {
+                val previousSeasons = allSeasonNumbers().filter { it < targetSeason }
+                for (season in previousSeasons) {
+                    try {
+                        val episodes = repository.getSeasonEpisodes(mediaId, season)
+                        for (ep in episodes) {
+                            val existing = watchHistoryDao.get(uid, mediaId.toLong(), season, ep.episodeNumber)
+                            if (existing == null || existing.syncStatus == SyncStatus.PENDING_DELETE) {
+                                val epRuntime = ep.runtime ?: _state.value.runtime
+                                watchHistoryDao.upsert(
+                                    (existing ?: WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), seasonNum = season, episodeNum = ep.episodeNumber, runtime = epRuntime)).copy(syncStatus = SyncStatus.PENDING_ADD)
+                                )
+                            }
+                        }
+                    } catch (_: Exception) { }
+                }
             }
             ensureInWatchlist()
             syncWatchedEpisodesCount()
@@ -344,11 +358,7 @@ class DetailViewModel @Inject constructor(
     // ponytail: all season numbers from cached data
     private fun allSeasonNumbers(): List<Int> {
         if (_state.value.usingEpisodeGroup) {
-            return cachedEpisodeGroups
-                ?.flatMap { it.episodes.map { ep -> ep.seasonNumber } }
-                ?.distinct()
-                ?.sorted()
-                ?: emptyList()
+            return cachedEpisodeGroups?.indices?.map { it + 1 } ?: emptyList()
         }
         return cachedSeasonNumbers
     }
@@ -492,6 +502,8 @@ class DetailViewModel @Inject constructor(
             // ponytail: movie watch history — upsert via get first, SQLite nulls bypass unique index
             val existingHistory = watchHistoryDao.get(uid, mediaId.toLong(), null, null)
             if (existingHistory == null) {
+                // Movie rows have null season/episode values, and SQLite/Postgres unique indexes
+                // do not treat NULL as equal. Always get-before-insert for mark-watched flows.
                 watchHistoryDao.upsert(WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), runtime = _state.value.runtime))
             } else if (existingHistory.syncStatus == SyncStatus.PENDING_DELETE) {
                 watchHistoryDao.upsert(existingHistory.copy(syncStatus = SyncStatus.PENDING_ADD, watchedAt = System.currentTimeMillis(), runtime = _state.value.runtime))
@@ -515,6 +527,8 @@ class DetailViewModel @Inject constructor(
                     syncStatus = if (current.syncStatus == SyncStatus.SYNCED) SyncStatus.PENDING_UPDATE else current.syncStatus,
                 ))
                 // ponytail: rewatch history for stats — single entry, multi-rewatch tracking later
+                // Rewatch intentionally inserts a fresh movie row even though null season/episode
+                // values bypass the unique index; each row contributes to SUM(runtime) stats.
                 watchHistoryDao.upsert(WatchHistoryEntity(userId = uid, tmdbId = mediaId.toLong(), rewatch = true, runtime = _state.value.runtime))
                 _state.value = _state.value.copy(rewatchCount = newCount)
             } else {
@@ -529,3 +543,17 @@ class DetailViewModel @Inject constructor(
         }
     }
 }
+
+private fun TmdbEpisodeGroupGroup.toAppEpisodes(seasonNumber: Int): List<TmdbEpisode> =
+    episodes.mapIndexed { index, episode ->
+        TmdbEpisode(
+            id = episode.id,
+            name = episode.name,
+            overview = episode.overview,
+            episodeNumber = index + 1,
+            seasonNumber = seasonNumber,
+            stillPath = episode.stillPath,
+            airDate = episode.airDate,
+            voteAverage = episode.voteAverage,
+        )
+    }

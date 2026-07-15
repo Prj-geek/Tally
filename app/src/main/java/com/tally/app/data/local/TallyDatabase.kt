@@ -21,6 +21,66 @@ abstract class TallyDatabase : RoomDatabase() {
     abstract fun watchHistoryDao(): WatchHistoryDao
 
     companion object {
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS watchlist_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        userId TEXT NOT NULL,
+                        tmdbId INTEGER NOT NULL,
+                        status TEXT NOT NULL,
+                        visibility TEXT NOT NULL,
+                        addedAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        syncStatus TEXT NOT NULL,
+                        remoteId INTEGER
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO watchlist_new (
+                        id, userId, tmdbId, status, visibility, addedAt, updatedAt, syncStatus, remoteId
+                    )
+                    SELECT id, userId, simklId, status, visibility, addedAt, updatedAt, syncStatus, remoteId
+                    FROM watchlist
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE watchlist")
+                db.execSQL("ALTER TABLE watchlist_new RENAME TO watchlist")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_watchlist_userId_tmdbId ON watchlist(userId, tmdbId)")
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS watch_history_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        userId TEXT NOT NULL,
+                        tmdbId INTEGER NOT NULL,
+                        seasonNum INTEGER,
+                        episodeNum INTEGER,
+                        watchedAt INTEGER NOT NULL,
+                        rewatch INTEGER NOT NULL,
+                        syncStatus TEXT NOT NULL,
+                        remoteId INTEGER
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO watch_history_new (
+                        id, userId, tmdbId, seasonNum, episodeNum, watchedAt, rewatch, syncStatus, remoteId
+                    )
+                    SELECT id, userId, simklId, seasonNum, episodeNum, watchedAt, rewatch, syncStatus, remoteId
+                    FROM watch_history
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE watch_history")
+                db.execSQL("ALTER TABLE watch_history_new RENAME TO watch_history")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_watch_history_userId_tmdbId_seasonNum_episodeNum ON watch_history(userId, tmdbId, seasonNum, episodeNum)")
+            }
+        }
+
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE watchlist ADD COLUMN rewatchCount INTEGER NOT NULL DEFAULT 0")
@@ -52,7 +112,7 @@ abstract class TallyDatabase : RoomDatabase() {
         fun create(context: Context): TallyDatabase =
             Room.databaseBuilder(context, TallyDatabase::class.java, "tally.db")
                 .fallbackToDestructiveMigration(false)
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
     }
 }

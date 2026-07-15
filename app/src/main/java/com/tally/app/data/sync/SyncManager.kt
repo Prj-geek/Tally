@@ -7,6 +7,7 @@ import com.tally.app.data.local.dao.WatchHistoryDao
 import com.tally.app.data.local.dao.WatchlistDao
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -165,14 +166,43 @@ class SyncManager @Inject constructor(
         }
     }
 
+    /**
+     * Supabase/PostgREST silently caps unpaginated selects at 1000 rows (project default).
+     * A plain .select() with no .range() returns a truncated, arbitrarily-ordered subset once
+     * a table exceeds that cap -- no error, no warning. We must page through with a stable
+     * ORDER BY before doing any reconciliation against the remote set (especially before
+     * deleteSyncedNotIn, which would otherwise treat "not in this page" as "delete locally").
+     */
+    private suspend inline fun <reified T : Any> fetchAllPages(
+        table: String,
+        uid: String,
+    ): List<T> {
+        val pageSize = 1000L
+        val all = mutableListOf<T>()
+        var offset = 0L
+        while (true) {
+            val page = supabase.from(table)
+                .select {
+                    filter { eq("user_id", uid) }
+                    order("id", Order.ASCENDING)
+                    range(offset, offset + pageSize - 1)
+                }
+                .decodeList<T>()
+            all += page
+            if (page.size < pageSize) break
+            offset += pageSize
+        }
+        return all
+    }
+
     private suspend fun pullRemoteChanges(uid: String) {
         val remoteWatchlist = try {
-            supabase.from("watchlist")
-                .select { filter { eq("user_id", uid) } }
-                .decodeList<SupabaseWatchlistEntry>()
+            fetchAllPages<SupabaseWatchlistEntry>("watchlist", uid)
         } catch (e: Exception) {
             Log.e(TAG, "pull: watchlist fetch failed", e)
-            emptyList()
+            _lastSyncError.value = e.message ?: "Watchlist pull failed"
+            // Bail out entirely -- do NOT proceed to deleteSyncedNotIn with a partial list.
+            return
         }
         Log.d(TAG, "pull: ${remoteWatchlist.size} remote watchlist entries")
 
@@ -181,7 +211,10 @@ class SyncManager @Inject constructor(
                 val local = watchlistDao.get(uid, remote.tmdbId)
                 if (local == null) {
                     watchlistDao.upsert(remote.toLocalEntity())
-                } else if (remote.updatedAt > local.updatedAt && local.syncStatus == SyncStatus.SYNCED) {
+                } else if (
+                    local.syncStatus == SyncStatus.SYNCED &&
+                    (remote.updatedAt > local.updatedAt || remote.genres != local.genres)
+                ) {
                     watchlistDao.upsert(
                         local.copy(
                             mediaType = remote.mediaType,
@@ -191,6 +224,7 @@ class SyncManager @Inject constructor(
                             rewatchCount = remote.rewatchCount,
                             totalEpisodes = remote.totalEpisodes,
                             watchedEpisodes = remote.watchedEpisodes,
+                            genres = remote.genres,
                             visibility = remote.visibility,
                             updatedAt = remote.updatedAt,
                             syncStatus = SyncStatus.SYNCED,
@@ -203,9 +237,7 @@ class SyncManager @Inject constructor(
         }
 
         val remoteHistory = try {
-            supabase.from("watch_history")
-                .select { filter { eq("user_id", uid) } }
-                .decodeList<SupabaseWatchHistoryEntry>()
+            fetchAllPages<SupabaseWatchHistoryEntry>("watch_history", uid)
         } catch (e: Exception) {
             Log.e(TAG, "pull: history fetch failed", e)
             emptyList()
@@ -217,6 +249,16 @@ class SyncManager @Inject constructor(
             val local = watchHistoryDao.get(uid, normalizedRemote.tmdbId, normalizedRemote.seasonNum, normalizedRemote.episodeNum)
             if (local == null) {
                 watchHistoryDao.upsert(normalizedRemote)
+            } else if (local.syncStatus == SyncStatus.SYNCED && local.runtime != normalizedRemote.runtime) {
+                watchHistoryDao.upsert(
+                    local.copy(
+                        runtime = normalizedRemote.runtime,
+                        watchedAt = normalizedRemote.watchedAt,
+                        rewatch = normalizedRemote.rewatch,
+                        remoteId = normalizedRemote.remoteId,
+                        syncStatus = SyncStatus.SYNCED,
+                    )
+                )
             }
         }
     }

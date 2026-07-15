@@ -14,6 +14,9 @@ interface WatchHistoryDao {
     @Query("SELECT * FROM watch_history WHERE userId = :userId AND tmdbId = :tmdbId AND syncStatus != 'PENDING_DELETE' ORDER BY seasonNum, episodeNum")
     fun getForMedia(userId: String, tmdbId: Long): Flow<List<WatchHistoryEntity>>
 
+    @Query("SELECT * FROM watch_history WHERE userId = :userId AND tmdbId = :tmdbId AND syncStatus != 'PENDING_DELETE' ORDER BY seasonNum, episodeNum")
+    suspend fun getForMediaOnce(userId: String, tmdbId: Long): List<WatchHistoryEntity>
+
     @Query("SELECT COUNT(*) FROM watch_history WHERE userId = :userId AND tmdbId = :tmdbId AND syncStatus != 'PENDING_DELETE'")
     suspend fun countForMedia(userId: String, tmdbId: Long): Int
 

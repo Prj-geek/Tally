@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.tally.app.data.auth.AuthRepository
 import com.tally.app.data.local.dao.WatchHistoryDao
 import com.tally.app.data.local.dao.WatchlistDao
+import com.tally.app.data.remote.EpisodeGroupOverrideRepository
 import com.tally.app.data.remote.TmdbImageUrl
+import com.tally.app.data.remote.TmdbRepository
 import com.tally.app.data.sync.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.auth.status.SessionStatus
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -49,6 +52,8 @@ class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val watchlistDao: WatchlistDao,
     private val watchHistoryDao: WatchHistoryDao,
+    private val tmdbRepository: TmdbRepository,
+    private val episodeGroupOverrideRepository: EpisodeGroupOverrideRepository,
     val syncManager: SyncManager,
 ) : ViewModel() {
 
@@ -63,6 +68,9 @@ class ProfileViewModel @Inject constructor(
 
     private val _watchedState = MutableStateFlow(WatchedState())
     val watchedState: StateFlow<WatchedState> = _watchedState.asStateFlow()
+
+    private val _isScanningEpisodeGroups = MutableStateFlow(false)
+    val isScanningEpisodeGroups: StateFlow<Boolean> = _isScanningEpisodeGroups.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -156,6 +164,54 @@ class ProfileViewModel @Inject constructor(
             watchlistDao.physicalDeleteAllForUser(uid)
             watchHistoryDao.physicalDeleteAllForUser(uid)
             loadWatched()
+        }
+    }
+
+    fun scanImportedEpisodeGroups() {
+        val uid = (authState.value as? AuthState.SignedIn)?.userId ?: return
+        if (_isScanningEpisodeGroups.value) return
+
+        viewModelScope.launch {
+            _isScanningEpisodeGroups.value = true
+            try {
+                val tvEntries = watchlistDao.getAll(uid)
+                    .first()
+                    .filter { it.mediaType == "tv" }
+                var scanned = 0
+                var proposed = 0
+                var alreadyExists = 0
+
+                for (entry in tvEntries) {
+                    val watchedEpisodes = watchHistoryDao.getForMediaOnce(uid, entry.tmdbId)
+                        .mapNotNull { history ->
+                            val season = history.seasonNum ?: return@mapNotNull null
+                            val episode = history.episodeNum ?: return@mapNotNull null
+                            season to episode
+                        }
+                        .toSet()
+                    if (watchedEpisodes.isEmpty()) continue
+
+                    val show = tmdbRepository.getTvShowDetails(entry.tmdbId.toInt()) ?: continue
+                    scanned++
+                    val result = episodeGroupOverrideRepository.proposeOverrideForImportedHistory(
+                        show = show,
+                        watchedEpisodes = watchedEpisodes,
+                    )
+                    if (result.inserted) proposed++ else if (result.alreadyExists) alreadyExists++
+                }
+
+                val message = when {
+                    proposed > 0 -> "Created $proposed episode group proposal(s)"
+                    alreadyExists > 0 -> "No new proposals; $alreadyExists already existed"
+                    scanned > 0 -> "No episode group mismatches found"
+                    else -> "No watched TV history to scan"
+                }
+                _error.emit(message)
+            } catch (e: Exception) {
+                _error.emit(e.message ?: "Episode group scan failed")
+            } finally {
+                _isScanningEpisodeGroups.value = false
+            }
         }
     }
 }

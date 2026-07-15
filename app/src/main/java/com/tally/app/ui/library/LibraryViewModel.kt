@@ -44,14 +44,20 @@ class LibraryViewModel @Inject constructor(
     val state: StateFlow<LibraryUiState> = _state.asStateFlow()
 
     private var collectionJob: Job? = null
+    private var lastLoadedUid: String? = null
 
     fun load() {
-        if (collectionJob?.isActive == true) return
         val uid = authRepository.currentUserId
+        if (collectionJob?.isActive == true) {
+            if (uid == lastLoadedUid) return
+            collectionJob?.cancel()
+        }
         if (uid == null) {
+            lastLoadedUid = null
             _state.value = LibraryUiState(isLoading = false)
             return
         }
+        lastLoadedUid = uid
         collectionJob = viewModelScope.launch {
             combine(
                 watchlistDao.getAll(uid),

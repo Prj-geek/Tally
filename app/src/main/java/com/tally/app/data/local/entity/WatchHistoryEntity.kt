@@ -5,6 +5,15 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.tally.app.data.local.SyncStatus
 
+/**
+ * Movie rows use null season and episode values. SQLite and Postgres unique indexes treat
+ * NULL != NULL, so the unique index does not dedupe movie watch-history rows.
+ *
+ * New movie "mark watched" call sites must first call
+ * watchHistoryDao.get(uid, tmdbId, null, null) and update that row when present instead of
+ * relying on OnConflictStrategy.REPLACE. Rewatch rows intentionally skip that lookup because
+ * each rewatch is a separate row used by SUM(runtime) watch-time stats.
+ */
 @Entity(
     tableName = "watch_history",
     indices = [Index(value = ["userId", "tmdbId", "seasonNum", "episodeNum"], unique = true)],
