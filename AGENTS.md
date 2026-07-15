@@ -3,6 +3,10 @@
 ## Build
 - Always use `.\gradlew assembleDebug --no-daemon` for builds (daemon causes shell hang)
 - Build command: `cd E:\dev\Tally; .\gradlew assembleDebug --no-daemon 2>&1`
+- SDK lives on E: (`ANDROID_HOME=E:\Android\Sdk`) — never touch C: for SDK stuff
+- After big changes, run `.\gradlew clean assembleDebug --no-daemon` to avoid stale cache bloat
+- Periodically clean Gradle cache: delete `$env:USERPROFILE\.gradle\caches\8.*` (old versions only, never delete current)
+- Emulator snapshots bloat AVD — clear via AVD Manager when not needed
 
 ## Rules
 - Complete one task at a time. Confirm it works, then wait for approval before the next.
@@ -27,3 +31,7 @@ After every task, I will provide:
 - DB v5: watchlist has totalEpisodes, watchedEpisodes for episode tracking
 - TV episode checking auto-adds to watchlist via ensureInWatchlist()
 - syncWatchedEpisodesCount() auto-transitions status when all episodes watched
+- TV Time CSV import: watchlisted shows/movies + watch history via Profile menu
+- Sync chip on Profile: shows Syncing / N pending / Synced / Sync failed
+- Movie history uses sentinel keys (season=0, episode=0) for Supabase dedupe
+- Profile: avatar from Supabase session, TopAppBar, ModalBottomSheet menu

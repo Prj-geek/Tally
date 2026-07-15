@@ -13,7 +13,9 @@ A personal TV and movie tracking app for Android. Search for shows and movies, b
 - **Auto-transition** — Shows move from "Currently Watching" to "Watched" when all episodes are checked
 - **Library** — Split into Shows and Movies tabs with "Currently Watching" / "Watchlisted" sub-sections
 - **Runtime stats** — Total watch time computed from tracked episodes and movies, displayed on profile
+- **Profile** — Avatar from Supabase session, watched shows/movies horizontal rows, sync status chip (Syncing/N pending/Synced/Sync failed)
 - **Cloud sync** — Offline-first bidirectional sync with Supabase (pending changes push when online)
+- **TV Time import** — Import watch history and watchlisted shows/movies from a TV Time GDPR export CSV
 - **Anime support** — Episode group override system for multi-cour anime with manually-verified season splits
 
 ## Tech Stack
@@ -70,3 +72,5 @@ This product uses the TMDb API but is not endorsed or certified by TMDb.
 3. **"Currently Watching" edge cases** — Auto-transition between "Currently Watching" and "Watched" is based on episode counts. Edge cases remain: a show that was fully watched getting a new season, or weekly episodes that should trigger "Currently Watching" when new episodes air. These will be addressed in Phase 3.
 
 4. **Upcoming section is placeholder** — The "Upcoming" tabs in the library require release date tracking, planned for Phase 3.
+
+5. **TV Time import** — Only supports the single combined GDPR CSV export. Individual episode-level CSV files are not supported.

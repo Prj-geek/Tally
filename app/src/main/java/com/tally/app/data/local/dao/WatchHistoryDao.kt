@@ -55,4 +55,6 @@ interface WatchHistoryDao {
 
     @Query("UPDATE watch_history SET syncStatus = 'PENDING_DELETE' WHERE userId = :userId AND syncStatus != 'PENDING_DELETE'")
     suspend fun softDeleteAllForUser(userId: String)
+    @Query("DELETE FROM watch_history WHERE userId = :userId")
+    suspend fun physicalDeleteAllForUser(userId: String)
 }

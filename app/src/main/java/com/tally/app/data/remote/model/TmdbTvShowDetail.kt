@@ -21,6 +21,7 @@ data class TmdbTvShowDetail(
     val tagline: String? = null,
     @SerialName("original_language") val originalLanguage: String? = null,
     val networks: List<TmdbNetwork>? = null,
+    @SerialName("episode_run_time") val episodeRunTime: List<Int>? = null,
     val seasons: List<TmdbSeason>? = null,
 )
 

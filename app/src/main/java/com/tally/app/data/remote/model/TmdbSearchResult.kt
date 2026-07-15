@@ -12,6 +12,12 @@ data class TmdbSearchResponse(
 )
 
 @Serializable
+data class TmdbFindResponse(
+    @SerialName("movie_results") val movieResults: List<TmdbSearchResult> = emptyList(),
+    @SerialName("tv_results") val tvResults: List<TmdbSearchResult> = emptyList(),
+)
+
+@Serializable
 data class TmdbSearchResult(
     val id: Int,
     @SerialName("media_type") val mediaType: String? = null,

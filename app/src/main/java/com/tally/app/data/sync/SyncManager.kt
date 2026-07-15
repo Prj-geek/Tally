@@ -7,12 +7,14 @@ import com.tally.app.data.local.dao.WatchHistoryDao
 import com.tally.app.data.local.dao.WatchlistDao
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -36,6 +38,20 @@ class SyncManager @Inject constructor(
     private var pendingSync = false
 
     fun sync() {
+        scope.launch { doSync() }
+    }
+
+    /** Suspends until the current sync cycle finishes. Useful for clear-data. */
+    suspend fun syncAndWait() {
+        if (!_isSyncing.value) {
+            doSync()
+            return
+        }
+        // Already syncing — wait for it to finish
+        _isSyncing.first { !it }
+    }
+
+    private suspend fun doSync() {
         val uid = authRepository.currentUserId
         if (uid == null) {
             Log.w(TAG, "sync: no user ID, skipping")
@@ -46,23 +62,21 @@ class SyncManager @Inject constructor(
             return
         }
         Log.d(TAG, "sync: starting for user $uid")
-        scope.launch {
-            _isSyncing.value = true
-            _lastSyncError.value = null
-            try {
-                pushPendingChanges(uid)
-                pullRemoteChanges(uid)
-                Log.d(TAG, "sync: completed")
-            } catch (e: Exception) {
-                Log.e(TAG, "sync failed", e)
-                _lastSyncError.value = e.message ?: "Sync failed"
-            } finally {
-                _isSyncing.value = false
-                updatePendingCount(uid)
-                if (pendingSync) {
-                    pendingSync = false
-                    sync()
-                }
+        _isSyncing.value = true
+        _lastSyncError.value = null
+        try {
+            pushPendingChanges(uid)
+            pullRemoteChanges(uid)
+            Log.d(TAG, "sync: completed")
+        } catch (e: Exception) {
+            Log.e(TAG, "sync failed", e)
+            _lastSyncError.value = e.message ?: "Sync failed"
+        } finally {
+            _isSyncing.value = false
+            updatePendingCount(uid)
+            if (pendingSync) {
+                pendingSync = false
+                doSync()
             }
         }
     }

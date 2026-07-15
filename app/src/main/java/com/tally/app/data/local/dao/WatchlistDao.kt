@@ -19,6 +19,12 @@ interface WatchlistDao {
     @Query("SELECT * FROM watchlist WHERE userId = :userId AND syncStatus != 'PENDING_DELETE' ORDER BY updatedAt DESC")
     fun getAll(userId: String): Flow<List<WatchlistEntity>>
 
+    @Query("SELECT COUNT(*) FROM watchlist WHERE userId = :userId AND mediaType = 'movie' AND status = 'watchlist' AND syncStatus != 'PENDING_DELETE'")
+    fun getWatchlistedMovieCount(userId: String): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM watchlist WHERE userId = :userId AND mediaType = 'tv' AND status = 'watchlist' AND syncStatus != 'PENDING_DELETE'")
+    fun getWatchlistedTvCount(userId: String): Flow<Int>
+
     @Query("SELECT * FROM watchlist WHERE userId = :userId AND syncStatus IN ('PENDING_ADD', 'PENDING_UPDATE')")
     suspend fun getPendingSync(userId: String): List<WatchlistEntity>
 
@@ -42,4 +48,6 @@ interface WatchlistDao {
 
     @Query("UPDATE watchlist SET syncStatus = 'PENDING_DELETE' WHERE userId = :userId AND syncStatus != 'PENDING_DELETE'")
     suspend fun softDeleteAllForUser(userId: String)
+    @Query("DELETE FROM watchlist WHERE userId = :userId")
+    suspend fun physicalDeleteAllForUser(userId: String)
 }

@@ -6,6 +6,7 @@ import com.tally.app.data.auth.AuthRepository
 import com.tally.app.data.local.dao.WatchHistoryDao
 import com.tally.app.data.local.dao.WatchlistDao
 import com.tally.app.data.local.entity.WatchlistEntity
+import com.tally.app.data.remote.TmdbImageUrl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,7 +74,7 @@ class LibraryViewModel @Inject constructor(
         tmdbId = tmdbId,
         mediaType = mediaType,
         title = title,
-        posterUrl = posterPath,
+        posterUrl = TmdbImageUrl.poster(posterPath),
         status = status,
         hasWatchedEpisodes = hasWatchedEpisodes,
         isFullyWatched = hasWatchedEpisodes && watchedEpisodes >= totalEpisodes && totalEpisodes > 0,

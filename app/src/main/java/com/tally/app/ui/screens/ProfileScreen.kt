@@ -219,23 +219,24 @@ fun ProfileScreen(
 
                     // Stats
                     item {
-                        val parts = mutableListOf<String>()
-                        if (watchedState.movieWatchTimeMinutes > 0) {
-                            parts += "Movie runtime: ${watchedState.movieWatchTimeMinutes / 60}h ${watchedState.movieWatchTimeMinutes % 60}m"
-                        }
-                        if (watchedState.tvWatchTimeMinutes > 0) {
-                            parts += "TV runtime: ${watchedState.tvWatchTimeMinutes / 60}h ${watchedState.tvWatchTimeMinutes % 60}m"
-                        }
-                        if (watchedState.watchedMovieCount > 0 || watchedState.watchedTvCount > 0) {
-                            parts += "Movies watched: ${watchedState.watchedMovieCount} | Shows watched: ${watchedState.watchedTvCount}"
-                        }
-                        if (parts.isNotEmpty()) {
-                            Text(
-                                text = parts.joinToString("  ·  "),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                        fun minStr(m: Int) = if (m > 0) "${m / 60}h ${m % 60}m" else "—"
+                        Text(
+                            text = buildString {
+                                append("Movie time: ${minStr(watchedState.movieWatchTimeMinutes)}  ·  TV time: ${minStr(watchedState.tvWatchTimeMinutes)}")
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = "Movies: ${watchedState.watchedMovieCount} watched  ·  ${watchedState.watchlistedMovieCount} watchlisted",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = "Shows: ${watchedState.watchedTvCount} watched  ·  ${watchedState.watchlistedTvCount} watchlisted",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         Spacer(Modifier.height(16.dp))
                     }
 
